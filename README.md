@@ -36,7 +36,6 @@ functions/
     whatsapp/
       send.js
 schema.sql
-wrangler.toml
 ```
 
 Cloudflare Pages automatically turns files inside `functions/` into backend API routes.
@@ -55,6 +54,8 @@ Cloudflare Pages automatically turns files inside `functions/` into backend API 
    - Binding name: `DB`
    - Database: `medic_globe_vip_campaign`
 7. Add WhatsApp environment variables in Pages settings.
+
+Do not use Direct Upload for this project because it includes Pages Functions. Deploy through GitHub connection, or use Wrangler CLI after you have the correct Cloudflare project settings.
 
 ## D1 schema
 
