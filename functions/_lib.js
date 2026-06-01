@@ -1,0 +1,167 @@
+export function json(payload, status = 200) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+export async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+
+export function normalizePhone(phone) {
+  return String(phone || "").replace(/[^\d+]/g, "");
+}
+
+export function formatWhatsAppPhone(phone) {
+  const digits = normalizePhone(phone).replace(/\D/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("60")) return digits;
+  if (digits.startsWith("0")) return `6${digits}`;
+  if (digits.length >= 9 && digits.length <= 10) return `60${digits}`;
+  return digits;
+}
+
+export function generateVipCode(source, counterValue) {
+  const prefix = source.includes("gyn")
+    ? "GYN"
+    : source.includes("tcm")
+      ? "TCM"
+      : source.includes("baby")
+        ? "BABY"
+        : source.includes("expo")
+          ? "EXPO"
+          : "VIP";
+  return `VIP-${prefix}-${String(counterValue).padStart(4, "0")}`;
+}
+
+export function toLead(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    vipCode: row.vip_code,
+    name: row.name,
+    phone: row.phone,
+    area: row.area,
+    dueDate: row.due_date,
+    interest: row.interest,
+    source: row.source,
+    giftRedeemed: Boolean(row.gift_redeemed),
+    redeemedAt: row.redeemed_at,
+    whatsappStatus: row.whatsapp_status,
+    whatsappMessage: row.whatsapp_message,
+    whatsappAt: row.whatsapp_at,
+    createdAt: row.created_at,
+  };
+}
+
+export function toConversion(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    vipCode: row.vip_code,
+    partnerId: row.partner_id,
+    stage: row.stage,
+    amount: Number(row.amount || 0),
+    notes: row.notes,
+    createdAt: row.created_at,
+  };
+}
+
+export async function getNextVipCounter(DB) {
+  const row = await DB.prepare("SELECT value FROM counters WHERE name = 'vip'").first();
+  if (!row) {
+    await DB.prepare("INSERT INTO counters (name, value) VALUES ('vip', 2)").run();
+    return 1;
+  }
+  await DB.prepare("UPDATE counters SET value = value + 1 WHERE name = 'vip'").run();
+  return Number(row.value);
+}
+
+export async function sendWhatsApp(env, body) {
+  const phone = formatWhatsAppPhone(body.phone);
+  if (!phone) {
+    return { status: "failed", message: "Invalid WhatsApp phone number." };
+  }
+
+  const templateName = env.WHATSAPP_TEMPLATE_NAME || "medic_globe_vip_code";
+  const languageCode = env.WHATSAPP_LANGUAGE_CODE || "zh_CN";
+  const supportPhone = env.WHATSAPP_SUPPORT_PHONE || "60165397128";
+  const partnerList = Array.isArray(body.partners)
+    ? body.partners.slice(0, 4).join("\n")
+    : "Medic Globe 合作月子中心名单";
+
+  const templateVariables = [
+    body.name || "妈咪",
+    body.vipCode || "-",
+    body.sourceLabel || body.source || "Medic Globe 合作点",
+    partnerList,
+    body.redeemLink || "https://vip.medicglobe.com.my/#redeem",
+    supportPhone,
+  ];
+
+  if (!env.WHATSAPP_TOKEN || !env.WHATSAPP_PHONE_NUMBER_ID) {
+    return {
+      status: "dry-run",
+      message:
+        "已进入 WhatsApp 测试模式。加入 WHATSAPP_TOKEN 和 WHATSAPP_PHONE_NUMBER_ID 后会真实发送。",
+      preview: {
+        to: phone,
+        template: templateName,
+        language: languageCode,
+        variables: templateVariables,
+      },
+    };
+  }
+
+  const response = await fetch(
+    `https://graph.facebook.com/v20.0/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: languageCode },
+          components: [
+            {
+              type: "body",
+              parameters: templateVariables.map((text) => ({
+                type: "text",
+                text: String(text),
+              })),
+            },
+          ],
+        },
+      }),
+    },
+  );
+
+  const payload = await response.json();
+  if (!response.ok) {
+    return {
+      status: "failed",
+      message: payload.error?.message || "WhatsApp API send failed.",
+      details: payload,
+    };
+  }
+
+  return {
+    status: "sent",
+    message: "VIP 码和合作月子中心名单已通过 WhatsApp 自动发送。",
+    whatsapp: payload,
+  };
+}

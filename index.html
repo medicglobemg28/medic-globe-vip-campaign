@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Medic Globe VIP Campaign</title>
+    <meta
+      name="description"
+      content="Medic Globe VIP campaign registration, reward redemption, partner reporting, and admin dashboard."
+    />
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KY2HEC6B46"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-KY2HEC6B46");
+    </script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#register" aria-label="Medic Globe VIP">
+        <span class="brand-mark">MG</span>
+        <span>
+          <strong>Medic Globe VIP</strong>
+          <small>QR Campaign System</small>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Main navigation">
+        <a href="#register" data-nav="register">登记</a>
+        <a href="#redeem" data-nav="redeem">兑换</a>
+        <a href="#partner" data-nav="partner">月子中心</a>
+        <a href="#admin" data-nav="admin">后台</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Medic Globe Campaign</p>
+          <h1>孕妈专属月子中心名单与 VIP 优惠码</h1>
+          <p class="hero-copy">
+            扫描 QR 后留下简单资料，即可领取合作月子中心名单、VIP 码，并凭领取凭证到柜台领取小礼物。
+          </p>
+        </div>
+        <div class="source-panel">
+          <span>当前 QR 来源</span>
+          <strong id="currentSourceLabel">未指定来源</strong>
+          <small id="currentSourceCode">source=unknown</small>
+        </div>
+      </section>
+
+      <section id="register" class="view active" aria-labelledby="registerTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">扫码登记</p>
+            <h2 id="registerTitle">领取名单与 VIP 码</h2>
+          </div>
+          <span class="status-pill">自动记录来源</span>
+        </div>
+        <div class="two-column">
+          <form id="leadForm" class="panel form-panel">
+            <label>
+              姓名
+              <input name="name" autocomplete="name" required placeholder="例如：Lim Mei Mei" />
+            </label>
+            <label>
+              WhatsApp
+              <input name="phone" autocomplete="tel" required placeholder="例如：0123456789" />
+            </label>
+            <div class="form-grid">
+              <label>
+                所在地区
+                <select name="area" required>
+                  <option value="">请选择</option>
+                  <option>Selangor</option>
+                  <option>Kuala Lumpur</option>
+                  <option>Penang</option>
+                  <option>Johor</option>
+                  <option>Perak</option>
+                  <option>Melaka</option>
+                  <option>其他</option>
+                </select>
+              </label>
+              <label>
+                预产期
+                <input name="dueDate" type="month" required />
+              </label>
+            </div>
+            <label>
+              想寻找的服务
+              <select name="interest" required>
+                <option value="">请选择</option>
+                <option>月子中心</option>
+                <option>月嫂服务</option>
+                <option>产后调理</option>
+                <option>还在了解</option>
+              </select>
+            </label>
+            <label class="checkbox-row">
+              <input name="consent" type="checkbox" required />
+              <span>我同意 Medic Globe 通过 WhatsApp 联系我，并发送合作月子中心名单与优惠资讯。</span>
+            </label>
+            <button class="primary-action" type="submit">生成 VIP 码</button>
+          </form>
+
+          <aside class="panel result-panel" id="leadResult">
+            <p class="eyebrow">提交后显示</p>
+            <h3>你的 VIP 码会出现在这里</h3>
+            <p>系统会同时产生礼物领取凭证，柜台只需验证一次即可避免重复领取。</p>
+            <div class="partner-list" id="publicPartnerList"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="redeem" class="view" aria-labelledby="redeemTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">柜台兑换</p>
+            <h2 id="redeemTitle">验证小礼物领取状态</h2>
+          </div>
+          <span class="status-pill">防重复领取</span>
+        </div>
+        <div class="two-column">
+          <form id="redeemForm" class="panel form-panel">
+            <label>
+              VIP 码或 WhatsApp
+              <input name="lookup" required placeholder="例如：VIP-TCM-0001 或 0123456789" />
+            </label>
+            <button class="primary-action" type="submit">检查状态</button>
+          </form>
+          <div class="panel result-panel" id="redeemResult">
+            <h3>输入资料后会显示兑换状态</h3>
+            <p>若状态为可领取，按下确认后会立即标记为已领取。</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="partner" class="view" aria-labelledby="partnerTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">月子中心回报</p>
+            <h2 id="partnerTitle">记录 VIP 码后续转化</h2>
+          </div>
+          <span class="status-pill">低负担回报</span>
+        </div>
+        <form id="conversionForm" class="panel form-panel wide-form">
+          <div class="form-grid">
+            <label>
+              月子中心
+              <select name="partner" required id="partnerSelect"></select>
+            </label>
+            <label>
+              VIP 码
+              <input name="vipCode" required placeholder="例如：VIP-GYN-0008" />
+            </label>
+          </div>
+          <div class="form-grid">
+            <label>
+              当前状态
+              <select name="stage" required>
+                <option value="consulted">已咨询</option>
+                <option value="visited">已预约参观</option>
+                <option value="signed">已签单</option>
+              </select>
+            </label>
+            <label>
+              签单金额 RM
+              <input name="amount" inputmode="decimal" placeholder="若未签单可留空" />
+            </label>
+          </div>
+          <label>
+            备注
+            <textarea name="notes" rows="3" placeholder="例如：客户预计 9 月入住，已安排参观。"></textarea>
+          </label>
+          <button class="primary-action" type="submit">提交回报</button>
+          <div id="conversionResult" class="inline-result"></div>
+        </form>
+      </section>
+
+      <section id="admin" class="view" aria-labelledby="adminTitle">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">管理后台</p>
+            <h2 id="adminTitle">Campaign 表现总览</h2>
+          </div>
+          <div class="actions">
+            <button id="seedButton" class="ghost-action" type="button">加入示范资料</button>
+            <button id="exportButton" class="ghost-action" type="button">导出 CSV</button>
+          </div>
+        </div>
+
+        <div class="metric-grid" id="metrics"></div>
+
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-head">
+              <h3>QR 展示点</h3>
+              <button id="copyLinksButton" class="small-action" type="button">复制链接</button>
+            </div>
+            <div id="locationList" class="stack-list"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h3>月子中心表现</h3>
+            </div>
+            <div id="partnerStats" class="stack-list"></div>
+          </div>
+        </div>
+
+        <div class="panel table-panel">
+          <div class="panel-head">
+            <h3>Leads 与 VIP 码</h3>
+            <input id="leadSearch" class="table-search" placeholder="搜姓名、电话、VIP码或来源" />
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>VIP 码</th>
+                  <th>姓名</th>
+                  <th>电话</th>
+                  <th>来源</th>
+                  <th>礼物</th>
+                  <th>转化</th>
+                </tr>
+              </thead>
+              <tbody id="leadTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <template id="successTemplate">
+      <div class="success-box">
+        <p class="eyebrow">登记成功</p>
+        <h3></h3>
+        <p class="large-code"></p>
+        <p class="muted"></p>
+      </div>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
