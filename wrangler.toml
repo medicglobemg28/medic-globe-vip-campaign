@@ -1,8 +1,0 @@
-name = "medic-globe-vip-campaign"
-pages_build_output_dir = "."
-compatibility_date = "2026-06-01"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "medic_globe_vip_campaign"
-database_id = "replace_with_cloudflare_d1_database_id"
