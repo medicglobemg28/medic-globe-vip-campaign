@@ -136,7 +136,7 @@ function groupedPartners(preferredArea = "", onlyPreferred = false) {
 function renderGroupedPartnerList(preferredArea = "", onlyPreferred = false) {
   const groups = groupedPartners(preferredArea, onlyPreferred);
   if (!groups.length) {
-    return `<div class="partner-item"><strong>暂时没有这个地区的合作月子中心</strong><small>请选择其他地区或联系 Medic Globe。</small></div>`;
+    return `<div class="partner-item"><strong>暂时没有这个地区的合作月子中心</strong><small>请选择其他地区或联系 永生 SWS28。</small></div>`;
   }
   return groups
     .map(
@@ -343,7 +343,7 @@ function renderAreaChooser(lead) {
 function renderLeadError(message) {
   document.querySelector("#leadResult").innerHTML = `
     <h3>暂时无法提交</h3>
-    <p>${message || "请稍后再试，或联系 Medic Globe team。"}</p>
+    <p>${message || "请稍后再试，或联系 永生 SWS28 team。"}</p>
   `;
 }
 

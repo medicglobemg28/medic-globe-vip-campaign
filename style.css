@@ -1,16 +1,18 @@
 :root {
   color-scheme: light;
-  --ink: #16201d;
-  --muted: #65706c;
-  --line: #dde4df;
-  --paper: #f8faf7;
+  --ink: #3c1220;
+  --muted: #7f5f67;
+  --line: #ffd0dc;
+  --paper: #fff6f8;
   --panel: #ffffff;
-  --brand: #136f63;
-  --brand-strong: #0b4f46;
-  --gold: #bd8a2d;
-  --rose: #b75c67;
+  --brand: #d71935;
+  --brand-strong: #9d0924;
+  --hot-pink: #ff2f72;
+  --gold: #f6b536;
+  --gold-strong: #a36500;
+  --rose: #c21739;
   --sky: #356d9c;
-  --shadow: 0 18px 50px rgba(24, 38, 34, 0.12);
+  --shadow: 0 18px 50px rgba(139, 17, 46, 0.16);
 }
 
 * {
@@ -19,7 +21,8 @@
 
 body {
   margin: 0;
-  background: var(--paper);
+  background:
+    linear-gradient(180deg, #fff 0, var(--paper) 360px, #fff8ed 100%);
   color: var(--ink);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -47,7 +50,7 @@ a {
   justify-content: space-between;
   gap: 20px;
   padding: 14px clamp(18px, 4vw, 48px);
-  background: rgba(248, 250, 247, 0.92);
+  background: rgba(255, 246, 248, 0.92);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(16px);
 }
@@ -55,7 +58,9 @@ a {
 .brand {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
+  text-align: center;
 }
 
 .brand-mark {
@@ -64,9 +69,17 @@ a {
   height: 42px;
   place-items: center;
   border-radius: 50%;
-  background: var(--brand);
+  background: linear-gradient(135deg, var(--brand), var(--hot-pink));
   color: #fff;
   font-weight: 800;
+}
+
+.brand-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff2f5;
 }
 
 .brand strong,
@@ -80,11 +93,16 @@ a {
   font-size: 12px;
 }
 
+.brand strong {
+  color: var(--brand-strong);
+  font-size: 21px;
+}
+
 .nav {
   display: flex;
   gap: 6px;
   padding: 4px;
-  background: #edf3ef;
+  background: #fff0f4;
   border: 1px solid var(--line);
   border-radius: 999px;
 }
@@ -101,7 +119,7 @@ a {
 .nav a.active {
   background: var(--panel);
   color: var(--brand-strong);
-  box-shadow: 0 6px 18px rgba(28, 54, 47, 0.1);
+  box-shadow: 0 6px 18px rgba(194, 23, 57, 0.12);
 }
 
 [data-internal-nav] {
@@ -123,21 +141,22 @@ main {
   grid-template-columns: minmax(0, 1fr) 320px;
   gap: 24px;
   align-items: end;
-  min-height: 280px;
+  min-height: 430px;
   padding: clamp(28px, 5vw, 56px);
   background:
-    linear-gradient(120deg, rgba(19, 111, 99, 0.96), rgba(17, 75, 76, 0.86)),
-    url("https://images.unsplash.com/photo-1555252333-9f8e92e65df9?auto=format&fit=crop&w=1600&q=80");
-  background-position: center;
+    linear-gradient(90deg, rgba(255, 246, 248, 0.92) 0%, rgba(255, 229, 235, 0.72) 44%, rgba(255, 255, 255, 0.02) 100%),
+    url("assets/banner-mama-bg.png");
+  background-position: center right;
   background-size: cover;
   border-radius: 8px;
-  color: #fff;
+  color: var(--brand-strong);
   box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 .eyebrow {
   margin: 0 0 10px;
-  color: var(--gold);
+  color: var(--brand);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
@@ -145,7 +164,7 @@ main {
 }
 
 .hero .eyebrow {
-  color: #f4ca74;
+  color: var(--brand);
 }
 
 h1,
@@ -156,11 +175,12 @@ p {
 }
 
 h1 {
-  max-width: 760px;
+  max-width: 560px;
   margin-bottom: 16px;
   font-size: clamp(36px, 6vw, 68px);
   line-height: 1.02;
   letter-spacing: 0;
+  text-shadow: none;
 }
 
 h2 {
@@ -176,24 +196,72 @@ h3 {
 }
 
 .hero-copy {
-  max-width: 680px;
+  max-width: 520px;
   margin-bottom: 0;
-  color: rgba(255, 255, 255, 0.9);
+  color: #67404a;
   font-size: 18px;
   line-height: 1.7;
 }
 
+.hero-logos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.hero-logos img {
+  max-width: 86px;
+  max-height: 80px;
+  object-fit: contain;
+  padding: 6px;
+  border: 1px solid rgba(215, 25, 53, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 20px rgba(134, 35, 59, 0.09);
+}
+
+.hero-logos img:last-child {
+  max-width: 92px;
+  max-height: 86px;
+}
+
+.cert-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 560px;
+  margin-top: 24px;
+}
+
+.cert-strip span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 219, 116, 0.74);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffef9a, #f5bd3c);
+  color: #6a2a00;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(93, 3, 25, 0.18);
+}
+
 .source-panel {
   padding: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.26);
+  border: 1px solid rgba(215, 25, 53, 0.14);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 246, 248, 0.9);
+  color: var(--brand-strong);
+  box-shadow: 0 16px 38px rgba(134, 35, 59, 0.14);
 }
 
 .source-panel span,
 .source-panel small {
   display: block;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--muted);
 }
 
 .source-panel strong {
@@ -223,7 +291,7 @@ h3 {
   padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  background: #fff;
+  background: #fff7dc;
   color: var(--brand-strong);
   font-size: 13px;
   font-weight: 700;
@@ -240,7 +308,7 @@ h3 {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: 0 10px 34px rgba(28, 54, 47, 0.08);
+  box-shadow: 0 10px 34px rgba(152, 19, 55, 0.08);
 }
 
 .form-panel,
@@ -256,7 +324,7 @@ label {
   display: grid;
   gap: 8px;
   margin-bottom: 16px;
-  color: #2b3834;
+  color: #4b1a28;
   font-size: 14px;
   font-weight: 750;
 }
@@ -266,7 +334,7 @@ select,
 textarea {
   width: 100%;
   min-height: 46px;
-  border: 1px solid #cad5cf;
+  border: 1px solid #f2bdca;
   border-radius: 8px;
   background: #fff;
   color: var(--ink);
@@ -282,7 +350,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--brand);
-  box-shadow: 0 0 0 4px rgba(19, 111, 99, 0.12);
+  box-shadow: 0 0 0 4px rgba(215, 25, 53, 0.12);
 }
 
 .form-grid {
@@ -316,12 +384,13 @@ textarea:focus {
 .primary-action {
   width: 100%;
   min-height: 50px;
-  background: var(--brand);
+  background: linear-gradient(135deg, var(--brand), var(--hot-pink));
   color: #fff;
+  box-shadow: 0 10px 22px rgba(194, 23, 57, 0.24);
 }
 
 .primary-action:hover {
-  background: var(--brand-strong);
+  background: linear-gradient(135deg, var(--brand-strong), #d31855);
 }
 
 .ghost-action,
@@ -329,7 +398,7 @@ textarea:focus {
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: #fff9fb;
   color: var(--brand-strong);
 }
 
@@ -370,7 +439,7 @@ textarea:focus {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfdfb;
+  background: #fffafb;
 }
 
 .partner-item strong,
@@ -393,15 +462,15 @@ textarea:focus {
 }
 
 .partner-link:hover {
-  border-color: rgba(19, 111, 99, 0.45);
+  border-color: rgba(215, 25, 53, 0.45);
   transform: translateY(-1px);
 }
 
 .success-box {
   padding: 18px;
-  border: 1px solid rgba(19, 111, 99, 0.26);
+  border: 1px solid rgba(215, 25, 53, 0.26);
   border-radius: 8px;
-  background: #eef8f3;
+  background: linear-gradient(180deg, #fff2f5, #fffaf2);
 }
 
 .large-code {
@@ -426,9 +495,9 @@ textarea:focus {
   gap: 4px;
   margin: 14px 0 4px;
   padding: 14px;
-  border: 1px solid rgba(19, 111, 99, 0.22);
+  border: 1px solid rgba(215, 25, 53, 0.22);
   border-radius: 8px;
-  background: #eef8f3;
+  background: #fff4f7;
 }
 
 .gift-panel,
@@ -439,7 +508,7 @@ textarea:focus {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfdfb;
+  background: #fffafb;
 }
 
 .gift-panel strong {
@@ -473,7 +542,7 @@ textarea:focus {
 
 .whatsapp-status[data-status="dry-run"],
 .whatsapp-status[data-status="sending"] {
-  border-color: rgba(189, 138, 45, 0.34);
+  border-color: rgba(246, 181, 54, 0.48);
   background: #fff8e9;
 }
 
@@ -571,7 +640,7 @@ th {
   min-height: 26px;
   padding: 0 9px;
   border-radius: 999px;
-  background: #eef3f0;
+  background: #fff2f5;
   color: var(--brand-strong);
   font-size: 12px;
   font-weight: 800;
@@ -614,8 +683,13 @@ th {
   }
 
   .hero {
-    min-height: 520px;
+    min-height: 560px;
     align-content: end;
+    background:
+      linear-gradient(180deg, rgba(255, 246, 248, 0.96) 0%, rgba(255, 229, 235, 0.78) 58%, rgba(255, 255, 255, 0.02) 100%),
+      url("assets/banner-mama-bg.png");
+    background-position: center right;
+    background-size: cover;
   }
 
   .actions {
@@ -625,4 +699,133 @@ th {
   .actions button {
     flex: 1;
   }
+}
+
+/* QR visitors open this campaign on phones, so the production layout is phone-sized by design. */
+.topbar {
+  align-items: stretch;
+  flex-direction: column;
+  justify-content: center;
+  width: min(430px, 100%);
+  margin: 0 auto;
+  padding: 12px 16px;
+}
+
+.nav {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+}
+
+.nav a {
+  flex: 1;
+  min-width: 72px;
+}
+
+main {
+  width: min(430px, calc(100% - 24px));
+  padding: 16px 0 44px;
+}
+
+.hero,
+.two-column,
+.dashboard-grid,
+.metric-grid,
+.form-grid {
+  grid-template-columns: 1fr;
+}
+
+.hero {
+  min-height: 500px;
+  gap: 14px;
+  align-content: end;
+  padding: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 246, 248, 0.98) 0%, rgba(255, 229, 235, 0.78) 58%, rgba(255, 255, 255, 0.02) 100%),
+    url("assets/banner-mama-bg.png");
+  background-position: 64% center;
+  background-size: cover;
+}
+
+.hero-logos {
+  gap: 8px;
+  justify-content: flex-start;
+  margin-bottom: 22px;
+}
+
+.hero-logos img {
+  max-width: none;
+  max-height: none;
+  width: auto;
+  height: 76px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  object-fit: contain;
+}
+
+.hero-logos img:last-child {
+  height: 88px;
+}
+
+h1 {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 350px;
+  color: #a20724;
+  font-size: 40px;
+  line-height: 1.04;
+}
+
+.title-symbol {
+  display: inline-block;
+  width: 72px;
+  height: auto;
+  object-fit: contain;
+  transform: translate(-3px, 7px);
+}
+
+h2 {
+  font-size: 28px;
+}
+
+.hero-copy {
+  max-width: 310px;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.cert-strip {
+  max-width: 310px;
+  margin-top: 18px;
+}
+
+.cert-strip span {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.source-panel {
+  padding: 14px;
+}
+
+.source-panel strong {
+  font-size: 20px;
+}
+
+.section-head {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.actions {
+  justify-content: stretch;
+}
+
+.actions button {
+  flex: 1;
 }

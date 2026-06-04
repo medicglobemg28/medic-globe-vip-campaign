@@ -109,12 +109,12 @@ export async function sendWhatsApp(env, body) {
   const supportPhone = env.WHATSAPP_SUPPORT_PHONE || "60165397128";
   const partnerList = Array.isArray(body.partners)
     ? body.partners.slice(0, 4).join("\n")
-    : "Medic Globe 合作月子中心名单";
+    : "永生 SWS28 合作月子中心名单";
 
   const templateVariables = [
     body.name || "妈咪",
     body.vipCode || "-",
-    body.sourceLabel || body.source || "Medic Globe 合作点",
+    body.sourceLabel || body.source || "永生 SWS28 合作点",
     partnerList,
     body.redeemLink || "https://vip.medicglobe.com.my/#redeem",
     supportPhone,

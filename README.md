@@ -1,4 +1,4 @@
-# Medic Globe VIP Campaign
+# 永生 SWS28 VIP Campaign
 
 This is a Cloudflare Pages + Pages Functions + D1 version for the QR sticker campaign.
 
