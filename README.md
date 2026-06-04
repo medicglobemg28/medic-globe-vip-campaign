@@ -12,13 +12,16 @@ It includes:
 - Google Analytics tag: `G-KY2HEC6B46`
 - WhatsApp Business API send endpoint for automatic VIP code messages
 - D1 database schema in `schema.sql`
+- Partner management and partner link click tracking
 
 ## Suggested live URLs
 
 - Public campaign page: `https://vip.medicglobe.com.my/?source=tcm_ampang#register`
-- Counter redeem page: `https://vip.medicglobe.com.my/#redeem`
-- Partner reporting page: `https://vip.medicglobe.com.my/#partner`
-- Admin dashboard: `https://vip.medicglobe.com.my/#admin`
+- Counter redeem page: `https://vip.medicglobe.com.my/?mode=admin#redeem`
+- Partner reporting page: `https://vip.medicglobe.com.my/?mode=admin#partner`
+- Admin dashboard: `https://vip.medicglobe.com.my/?mode=admin#admin`
+
+Public visitors only see the registration page. Internal views are hidden unless the URL includes `?mode=admin`.
 
 ## Cloudflare file structure
 
@@ -93,3 +96,16 @@ Without credentials, the server returns dry-run mode so the campaign flow can st
 - `GET /api/admin` reads dashboard data.
 - `POST /api/admin` with `{ "action": "seed" }` adds demo data.
 - `POST /api/whatsapp/send` sends a WhatsApp template message directly.
+- `GET /api/partners` reads partner records.
+- `POST /api/partners` adds a partner record.
+- `GET /api/partner-click?id=...` records a partner click and redirects to the partner link.
+
+## Partner setup
+
+Run the latest `schema.sql` in D1 Console after deploying this version. It adds the `partners` table and starter partner rows without deleting existing leads.
+
+Internal partner management:
+
+```text
+https://vip.medicglobe.com.my/?mode=admin#admin
+```

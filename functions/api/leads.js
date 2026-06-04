@@ -71,3 +71,21 @@ export async function onRequestPost({ request, env }) {
 
   return json({ duplicate: false, lead, whatsapp });
 }
+
+export async function onRequestPatch({ request, env }) {
+  if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
+
+  const body = await readJson(request);
+  const vipCode = String(body.vipCode || "").trim().toUpperCase();
+  const area = String(body.area || "").trim();
+  if (!vipCode || !area) {
+    return json({ message: "VIP code and area are required." }, 400);
+  }
+
+  const existing = await env.DB.prepare("SELECT * FROM leads WHERE vip_code = ? LIMIT 1").bind(vipCode).first();
+  if (!existing) return json({ message: "找不到这个 VIP 码。" }, 404);
+
+  await env.DB.prepare("UPDATE leads SET area = ? WHERE vip_code = ?").bind(area, vipCode).run();
+  const updated = await env.DB.prepare("SELECT * FROM leads WHERE vip_code = ? LIMIT 1").bind(vipCode).first();
+  return json({ lead: toLead(updated) });
+}

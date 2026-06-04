@@ -30,9 +30,9 @@
       </a>
       <nav class="nav" aria-label="Main navigation">
         <a href="#register" data-nav="register">登记</a>
-        <a href="#redeem" data-nav="redeem">兑换</a>
-        <a href="#partner" data-nav="partner">月子中心</a>
-        <a href="#admin" data-nav="admin">后台</a>
+        <a href="#redeem" data-nav="redeem" data-internal-nav>兑换</a>
+        <a href="#partner" data-nav="partner" data-internal-nav>月子中心</a>
+        <a href="#admin" data-nav="admin" data-internal-nav>后台</a>
       </nav>
     </header>
 
@@ -70,34 +70,9 @@
               WhatsApp
               <input name="phone" autocomplete="tel" required placeholder="例如：0123456789" />
             </label>
-            <div class="form-grid">
-              <label>
-                所在地区
-                <select name="area" required>
-                  <option value="">请选择</option>
-                  <option>Selangor</option>
-                  <option>Kuala Lumpur</option>
-                  <option>Penang</option>
-                  <option>Johor</option>
-                  <option>Perak</option>
-                  <option>Melaka</option>
-                  <option>其他</option>
-                </select>
-              </label>
-              <label>
-                预产期
-                <input name="dueDate" type="month" required />
-              </label>
-            </div>
             <label>
-              想寻找的服务
-              <select name="interest" required>
-                <option value="">请选择</option>
-                <option>月子中心</option>
-                <option>月嫂服务</option>
-                <option>产后调理</option>
-                <option>还在了解</option>
-              </select>
+              预产期
+              <input name="dueDate" type="month" required />
             </label>
             <label class="checkbox-row">
               <input name="consent" type="checkbox" required />
@@ -109,8 +84,7 @@
           <aside class="panel result-panel" id="leadResult">
             <p class="eyebrow">提交后显示</p>
             <h3>你的 VIP 码会出现在这里</h3>
-            <p>系统会同时产生礼物领取凭证，柜台只需验证一次即可避免重复领取。</p>
-            <div class="partner-list" id="publicPartnerList"></div>
+            <p>提交资料并生成 VIP 码后，系统才会显示你所在地区的合作月子中心名单。</p>
           </aside>
         </div>
       </section>
@@ -207,6 +181,54 @@
               <h3>月子中心表现</h3>
             </div>
             <div id="partnerStats" class="stack-list"></div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid partner-admin-grid">
+          <form id="partnerForm" class="panel form-panel">
+            <div class="panel-head compact-head">
+              <h3>新增合作伙伴</h3>
+            </div>
+            <label>
+              月子中心名字
+              <input name="name" required placeholder="例如：ABC Confinement Centre" />
+            </label>
+            <div class="form-grid">
+              <label>
+                地区
+                <select name="area" required>
+                  <option value="">请选择</option>
+                  <option>Selangor</option>
+                  <option>Kuala Lumpur</option>
+                  <option>Penang</option>
+                  <option>Johor</option>
+                  <option>Perak</option>
+                  <option>Melaka</option>
+                  <option>其他</option>
+                </select>
+              </label>
+              <label>
+                链接类型
+                <select name="linkLabel" required>
+                  <option>Facebook</option>
+                  <option>Video</option>
+                  <option>Website</option>
+                </select>
+              </label>
+            </div>
+            <label>
+              Facebook / Video 链接
+              <input name="link" required placeholder="https://..." />
+            </label>
+            <button class="primary-action" type="submit">加入名单</button>
+            <div id="partnerFormResult" class="inline-result"></div>
+          </form>
+
+          <div class="panel">
+            <div class="panel-head">
+              <h3>合作伙伴点击数</h3>
+            </div>
+            <div id="partnerClickStats" class="stack-list"></div>
           </div>
         </div>
 

@@ -1,14 +1,16 @@
-import { json, toConversion, toLead } from "../_lib.js";
+import { json, toConversion, toLead, toPartner } from "../_lib.js";
 
 export async function onRequestGet({ env }) {
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
 
   const leads = await env.DB.prepare("SELECT * FROM leads ORDER BY created_at DESC").all();
   const conversions = await env.DB.prepare("SELECT * FROM conversions ORDER BY created_at DESC").all();
+  const partners = await env.DB.prepare("SELECT * FROM partners ORDER BY area, name").all();
 
   return json({
     leads: leads.results.map(toLead),
     conversions: conversions.results.map(toConversion),
+    partners: partners.results.map(toPartner),
   });
 }
 

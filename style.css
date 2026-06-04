@@ -104,6 +104,14 @@ a {
   box-shadow: 0 6px 18px rgba(28, 54, 47, 0.1);
 }
 
+[data-internal-nav] {
+  display: none;
+}
+
+.internal-mode [data-internal-nav] {
+  display: block;
+}
+
 main {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
@@ -338,6 +346,25 @@ textarea:focus {
   margin-top: 20px;
 }
 
+.partner-list.compact {
+  margin-top: 0;
+}
+
+.partner-group {
+  display: grid;
+  gap: 10px;
+}
+
+.partner-group + .partner-group {
+  margin-top: 18px;
+}
+
+.partner-group h4 {
+  margin: 0;
+  color: var(--brand-strong);
+  font-size: 15px;
+}
+
 .partner-item,
 .stack-item {
   padding: 14px;
@@ -356,6 +383,18 @@ textarea:focus {
 .stack-item small,
 .muted {
   color: var(--muted);
+}
+
+.partner-link {
+  display: block;
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.partner-link:hover {
+  border-color: rgba(19, 111, 99, 0.45);
+  transform: translateY(-1px);
 }
 
 .success-box {
@@ -390,6 +429,26 @@ textarea:focus {
   border: 1px solid rgba(19, 111, 99, 0.22);
   border-radius: 8px;
   background: #eef8f3;
+}
+
+.gift-panel,
+.area-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfb;
+}
+
+.gift-panel strong {
+  color: var(--brand-strong);
+}
+
+.gift-panel span {
+  color: var(--muted);
+  line-height: 1.45;
 }
 
 .whatsapp-status strong {
@@ -466,6 +525,15 @@ textarea:focus {
 
 .table-panel {
   margin-top: 18px;
+}
+
+.partner-admin-grid {
+  margin-top: 18px;
+}
+
+.compact-head {
+  margin: -20px -20px 18px;
+  padding-top: 0;
 }
 
 .table-search {

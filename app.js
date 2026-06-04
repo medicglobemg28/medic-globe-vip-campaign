@@ -7,14 +7,39 @@ const locations = [
   { code: "expo_2026", label: "母婴展 2026", type: "展会" },
 ];
 
-const partners = [
-  { id: "diamond-baby", name: "Diamond Baby Confinement Center", area: "Selangor" },
-  { id: "yk-home", name: "YK Confinement Home", area: "Kuala Lumpur" },
-  { id: "mama-care", name: "Mama Care Confinement", area: "Penang" },
-  { id: "harmony-mom", name: "Harmony Mom Care", area: "Johor" },
+let partners = [
+  {
+    id: "diamond-baby",
+    name: "Diamond Baby Confinement Center",
+    area: "Selangor",
+    link: "https://www.facebook.com/",
+    linkLabel: "Facebook",
+  },
+  {
+    id: "yk-home",
+    name: "YK Confinement Home",
+    area: "Kuala Lumpur",
+    link: "https://www.facebook.com/",
+    linkLabel: "Facebook",
+  },
+  {
+    id: "mama-care",
+    name: "Mama Care Confinement",
+    area: "Penang",
+    link: "https://www.youtube.com/",
+    linkLabel: "Video",
+  },
+  {
+    id: "harmony-mom",
+    name: "Harmony Mom Care",
+    area: "Johor",
+    link: "https://www.facebook.com/",
+    linkLabel: "Facebook",
+  },
 ];
 
-let adminState = { leads: [], conversions: [] };
+let adminState = { leads: [], conversions: [], partners: [] };
+let internalMode = false;
 
 function track(eventName, params = {}) {
   if (typeof window.gtag === "function") {
@@ -70,22 +95,69 @@ function stageLabel(stage) {
   }[stage] || "未回报";
 }
 
-function renderPartnerList() {
+async function loadPartners() {
+  try {
+    const payload = await apiRequest("/api/partners");
+    partners = payload.partners.length ? payload.partners : partners;
+  } catch {
+    // Keep the default fallback list if the API is not ready yet.
+  }
+}
+
+function renderPartnerList(preferredArea = "") {
   const container = document.querySelector("#publicPartnerList");
-  container.innerHTML = partners
-    .map(
-      (partner) => `
-        <div class="partner-item">
-          <strong>${partner.name}</strong>
-          <small>${partner.area}</small>
-        </div>
-      `,
-    )
-    .join("");
+  if (!container) return;
+  container.innerHTML = renderGroupedPartnerList(preferredArea, true);
 
   const select = document.querySelector("#partnerSelect");
   select.innerHTML = partners
     .map((partner) => `<option value="${partner.id}">${partner.name}</option>`)
+    .join("");
+}
+
+function groupedPartners(preferredArea = "", onlyPreferred = false) {
+  const groups = partners.reduce((items, partner) => {
+    items[partner.area] = items[partner.area] || [];
+    items[partner.area].push(partner);
+    return items;
+  }, {});
+  let areas = Object.keys(groups);
+  if (onlyPreferred && preferredArea) {
+    areas = areas.filter((area) => area === preferredArea);
+  }
+  areas = areas.sort((left, right) => {
+    if (left === preferredArea) return -1;
+    if (right === preferredArea) return 1;
+    return left.localeCompare(right);
+  });
+  return areas.map((area) => ({ area, partners: groups[area] }));
+}
+
+function renderGroupedPartnerList(preferredArea = "", onlyPreferred = false) {
+  const groups = groupedPartners(preferredArea, onlyPreferred);
+  if (!groups.length) {
+    return `<div class="partner-item"><strong>暂时没有这个地区的合作月子中心</strong><small>请选择其他地区或联系 Medic Globe。</small></div>`;
+  }
+  return groups
+    .map(
+      (group) => `
+        <section class="partner-group">
+          <h4>${group.area}</h4>
+          <div class="partner-list compact">
+            ${group.partners
+              .map(
+                (partner) => `
+                  <a class="partner-item partner-link" href="/api/partner-click?id=${encodeURIComponent(partner.id)}" target="_blank" rel="noopener noreferrer">
+                    <strong>${partner.name}</strong>
+                    <small>${partner.linkLabel} · 点击查看详情 · ${Number(partner.clicks || 0)} 次点击</small>
+                  </a>
+                `,
+              )
+              .join("")}
+          </div>
+        </section>
+      `,
+    )
     .join("");
 }
 
@@ -96,7 +168,13 @@ function renderSource() {
 }
 
 function showView() {
-  const active = (window.location.hash || "#register").replace("#", "");
+  internalMode = internalMode || new URLSearchParams(window.location.search).get("mode") === "admin";
+  document.body.classList.toggle("internal-mode", internalMode);
+  let active = (window.location.hash || "#register").replace("#", "");
+  if (!internalMode && ["redeem", "partner", "admin"].includes(active)) {
+    active = "register";
+    history.replaceState(null, "", `${location.pathname}${location.search}#register`);
+  }
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === active);
   });
@@ -120,12 +198,12 @@ async function handleLeadSubmit(event) {
       body: JSON.stringify({
         name: data.name.trim(),
         phone: normalizePhone(data.phone),
-        area: data.area,
+        area: "",
         dueDate: data.dueDate,
-        interest: data.interest,
+        interest: "月子中心名单",
         source,
         sourceLabel: locationLabel(source),
-        partners: partners.map((partner) => `${partner.name} (${partner.area})`),
+        partners: partners.map((partner) => `${partner.name} (${partner.area}) - ${partner.link}`),
         redeemLink: `${location.origin}${location.pathname}#redeem`,
       }),
     });
@@ -138,7 +216,7 @@ async function handleLeadSubmit(event) {
       source,
       vip_code: payload.lead.vipCode,
       area: payload.lead.area,
-      interest: payload.lead.interest,
+      interest: "月子中心名单",
     });
     track("whatsapp_auto_send", {
       source,
@@ -177,19 +255,89 @@ function renderLeadSuccess(lead, isDuplicate, whatsappStatus = lead.whatsappStat
   status.className = "whatsapp-status";
   result.appendChild(status);
   renderWhatsAppStatus(whatsappStatus, lead.whatsappMessage);
-  const list = document.createElement("div");
-  list.className = "partner-list";
-  list.innerHTML = partners
-    .map(
-      (partner) => `
-        <div class="partner-item">
-          <strong>${partner.name}</strong>
-          <small>${partner.area}</small>
-        </div>
-      `,
-    )
-    .join("");
-  result.appendChild(list);
+  result.appendChild(renderGiftRedeemPanel(lead));
+  result.appendChild(renderAreaChooser(lead));
+}
+
+function renderGiftRedeemPanel(lead) {
+  const panel = document.createElement("div");
+  panel.className = "gift-panel";
+  const redeemedDate = lead.redeemedAt ? formatDate(lead.redeemedAt) : "";
+  panel.innerHTML = lead.giftRedeemed
+    ? `
+      <strong>小礼物已领取</strong>
+      <span>领取日期：${redeemedDate}</span>
+    `
+    : `
+      <strong>柜台领取确认</strong>
+      <span>到柜台领取小礼物时，请由工作人员点击确认。</span>
+      <button class="ghost-action" type="button" id="inlineRedeemButton">确认已经领取</button>
+      <span id="inlineRedeemResult"></span>
+    `;
+
+  const button = panel.querySelector("#inlineRedeemButton");
+  if (button) {
+    button.addEventListener("click", async () => {
+      const result = panel.querySelector("#inlineRedeemResult");
+      button.disabled = true;
+      try {
+        const payload = await apiRequest("/api/redeem", {
+          method: "POST",
+          body: JSON.stringify({ action: "confirm", vipCode: lead.vipCode }),
+        });
+        result.textContent = `领取日期：${formatDate(payload.lead.redeemedAt)}`;
+        button.textContent = "已领取";
+        track("gift_redeemed_inline", { vip_code: lead.vipCode, source: lead.source });
+      } catch (error) {
+        result.textContent = error.message || "确认失败，请稍后再试。";
+        button.disabled = false;
+      }
+    });
+  }
+  return panel;
+}
+
+function renderAreaChooser(lead) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "area-panel";
+  wrapper.innerHTML = `
+    <label>
+      所在地区
+      <select id="postSubmitArea" required>
+        <option value="">请选择地区以查看合作月子中心名单</option>
+        <option ${lead.area === "Selangor" ? "selected" : ""}>Selangor</option>
+        <option ${lead.area === "Kuala Lumpur" ? "selected" : ""}>Kuala Lumpur</option>
+        <option ${lead.area === "Penang" ? "selected" : ""}>Penang</option>
+        <option ${lead.area === "Johor" ? "selected" : ""}>Johor</option>
+        <option ${lead.area === "Perak" ? "selected" : ""}>Perak</option>
+        <option ${lead.area === "Melaka" ? "selected" : ""}>Melaka</option>
+        <option ${lead.area === "其他" ? "selected" : ""}>其他</option>
+      </select>
+    </label>
+    <div id="postSubmitPartnerList" class="partner-list"></div>
+  `;
+
+  const select = wrapper.querySelector("#postSubmitArea");
+  const list = wrapper.querySelector("#postSubmitPartnerList");
+  const renderList = (area) => {
+    list.innerHTML = area ? renderGroupedPartnerList(area, true) : "";
+  };
+  renderList(lead.area);
+  select.addEventListener("change", async () => {
+    const area = select.value;
+    renderList(area);
+    if (!area) return;
+    try {
+      await apiRequest("/api/leads", {
+        method: "PATCH",
+        body: JSON.stringify({ vipCode: lead.vipCode, area }),
+      });
+      track("lead_area_selected", { vip_code: lead.vipCode, area });
+    } catch {
+      // The list can still be shown even if saving the area is temporarily unavailable.
+    }
+  });
+  return wrapper;
 }
 
 function renderLeadError(message) {
@@ -308,6 +456,7 @@ async function renderAdmin() {
   metrics.innerHTML = `<div class="metric"><span>正在读取</span><strong>...</strong></div>`;
   try {
     adminState = await apiRequest("/api/admin");
+    partners = adminState.partners.length ? adminState.partners : partners;
     renderAdminFromState(adminState);
   } catch (error) {
     metrics.innerHTML = `<div class="metric"><span>后台连接失败</span><strong>!</strong></div>`;
@@ -333,6 +482,7 @@ function renderAdminFromState(state) {
 
   renderLocations(state);
   renderPartnerStats(state);
+  renderPartnerClickStats(state);
   renderLeadTable(state);
 }
 
@@ -370,6 +520,53 @@ function renderPartnerStats(state) {
       `;
     })
     .join("");
+}
+
+function renderPartnerClickStats(state) {
+  const container = document.querySelector("#partnerClickStats");
+  if (!container) return;
+  const items = (state.partners || partners).slice().sort((left, right) => {
+    return Number(right.clicks || 0) - Number(left.clicks || 0);
+  });
+  container.innerHTML =
+    items
+      .map(
+        (partner) => `
+          <div class="stack-item">
+            <strong>${partner.name}</strong>
+            <small>${partner.area} · ${Number(partner.clicks || 0)} 点击 · ${partner.linkLabel}</small>
+          </div>
+        `,
+      )
+      .join("") || `<div class="stack-item">还没有合作伙伴资料。</div>`;
+}
+
+async function handlePartnerSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  const result = document.querySelector("#partnerFormResult");
+
+  try {
+    renderFormBusy(form, true);
+    const payload = await apiRequest("/api/partners", {
+      method: "POST",
+      body: JSON.stringify({
+        name: data.name.trim(),
+        area: data.area,
+        link: data.link.trim(),
+        linkLabel: data.linkLabel,
+      }),
+    });
+    partners.push(payload.partner);
+    form.reset();
+    result.textContent = `已加入：${payload.partner.name}`;
+    await renderAdmin();
+  } catch (error) {
+    result.textContent = error.message || "新增失败，请检查链接。";
+  } finally {
+    renderFormBusy(form, false);
+  }
 }
 
 function renderLeadTable(state) {
@@ -458,13 +655,18 @@ function bindEvents() {
   document.querySelector("#leadForm").addEventListener("submit", handleLeadSubmit);
   document.querySelector("#redeemForm").addEventListener("submit", handleRedeemSubmit);
   document.querySelector("#conversionForm").addEventListener("submit", handleConversionSubmit);
+  document.querySelector("#partnerForm").addEventListener("submit", handlePartnerSubmit);
   document.querySelector("#seedButton").addEventListener("click", seedDemoData);
   document.querySelector("#exportButton").addEventListener("click", exportCsv);
   document.querySelector("#copyLinksButton").addEventListener("click", copyQrLinks);
   document.querySelector("#leadSearch").addEventListener("input", () => renderLeadTable(adminState));
 }
 
-renderSource();
-renderPartnerList();
-bindEvents();
-showView();
+async function init() {
+  await loadPartners();
+  renderSource();
+  bindEvents();
+  showView();
+}
+
+init();

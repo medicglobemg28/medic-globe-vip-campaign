@@ -75,6 +75,19 @@ export function toConversion(row) {
   };
 }
 
+export function toPartner(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    area: row.area,
+    link: row.link,
+    linkLabel: row.link_label,
+    clicks: Number(row.clicks || 0),
+    createdAt: row.created_at,
+  };
+}
+
 export async function getNextVipCounter(DB) {
   const row = await DB.prepare("SELECT value FROM counters WHERE name = 'vip'").first();
   if (!row) {
