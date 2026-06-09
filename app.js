@@ -1,11 +1,16 @@
 const GA_ID = "G-KY2HEC6B46";
 
 const locations = [
+  { code: "yc_tcm_puchong", label: "YC TCM Puchong", type: "中医馆" },
   { code: "yc_tcm_ss2", label: "YC TCM SS2", type: "中医馆" },
-  { code: "tcm_ampang", label: "Ampang 中医馆", type: "中医馆" },
-  { code: "gyn_pj", label: "PJ 妇科诊所", type: "妇科诊疗所" },
-  { code: "baby_kl", label: "KL 母婴店", type: "母婴店" },
-  { code: "expo_2026", label: "母婴展 2026", type: "展会" },
+  { code: "yc_tcm_cheras", label: "YC TCM Cheras", type: "中医馆" },
+  { code: "yc_tcm_kuchai_lama", label: "YC TCM Kuchai Lama", type: "中医馆" },
+  { code: "yc_tcm_oug", label: "YC TCM OUG", type: "中医馆" },
+  { code: "yc_tcm_klang", label: "YC TCM Klang", type: "中医馆" },
+  { code: "yc_tcm_kota_kemuning", label: "YC TCM Kota Kemuning", type: "中医馆" },
+  { code: "yc_tcm_balakong", label: "YC TCM Balakong", type: "中医馆" },
+  { code: "yc_tcm_sws_medical", label: "YC TCM SWS Medical", type: "中医馆" },
+  { code: "yc_tcm_wing_sang", label: "YC TCM Wing Sang", type: "中医馆" },
 ];
 
 let partners = [

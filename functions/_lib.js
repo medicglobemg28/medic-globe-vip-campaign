@@ -89,13 +89,9 @@ export function toPartner(row) {
 }
 
 export async function getNextVipCounter(DB) {
-  const row = await DB.prepare("SELECT value FROM counters WHERE name = 'vip'").first();
-  if (!row) {
-    await DB.prepare("INSERT INTO counters (name, value) VALUES ('vip', 2)").run();
-    return 1;
-  }
-  await DB.prepare("UPDATE counters SET value = value + 1 WHERE name = 'vip'").run();
-  return Number(row.value);
+  await DB.prepare("INSERT OR IGNORE INTO counters (name, value) VALUES ('vip', 1)").run();
+  const row = await DB.prepare("UPDATE counters SET value = value + 1 WHERE name = 'vip' RETURNING value").first();
+  return Number(row.value) - 1;
 }
 
 export async function sendWhatsApp(env, body) {
