@@ -69,7 +69,17 @@ function sourceFromUrl() {
 }
 
 function locationLabel(code) {
-  return locations.find((location) => location.code === code)?.label || code;
+  const knownLocation = locations.find((location) => location.code === code);
+  if (knownLocation) return knownLocation.label;
+  return String(code || "unknown")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => {
+      const upper = part.toUpperCase();
+      if (["YC", "TCM", "SS2", "PJ", "KL", "VIP"].includes(upper)) return upper;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
 }
 
 function normalizePhone(phone) {
