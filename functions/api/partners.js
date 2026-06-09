@@ -38,3 +38,16 @@ export async function onRequestPost({ request, env }) {
 
   return json({ partner });
 }
+
+export async function onRequestDelete({ request, env }) {
+  if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
+  const url = new URL(request.url);
+  const id = url.searchParams.get("id");
+  if (!id) return json({ message: "Partner id is required." }, 400);
+
+  const existing = await env.DB.prepare("SELECT id, name FROM partners WHERE id = ? LIMIT 1").bind(id).first();
+  if (!existing) return json({ message: "找不到这个合作伙伴。" }, 404);
+
+  await env.DB.prepare("DELETE FROM partners WHERE id = ?").bind(id).run();
+  return json({ ok: true, deleted: existing });
+}

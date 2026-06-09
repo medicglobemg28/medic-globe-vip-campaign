@@ -551,13 +551,20 @@ function renderPartnerClickStats(state) {
     items
       .map(
         (partner) => `
-          <div class="stack-item">
+          <div class="stack-item partner-admin-item">
             <strong>${partner.name}</strong>
             <small>${partner.area} · ${Number(partner.clicks || 0)} 点击 · ${partner.linkLabel}</small>
+            <button class="small-action danger-action" type="button" data-delete-partner="${partner.id}">
+              删除
+            </button>
           </div>
         `,
       )
       .join("") || `<div class="stack-item">还没有合作伙伴资料。</div>`;
+
+  container.querySelectorAll("[data-delete-partner]").forEach((button) => {
+    button.addEventListener("click", handlePartnerDelete);
+  });
 }
 
 async function handlePartnerSubmit(event) {
@@ -585,6 +592,25 @@ async function handlePartnerSubmit(event) {
     result.textContent = error.message || "新增失败，请检查链接。";
   } finally {
     renderFormBusy(form, false);
+  }
+}
+
+async function handlePartnerDelete(event) {
+  const id = event.currentTarget.dataset.deletePartner;
+  const partner = partners.find((item) => item.id === id) || adminState.partners.find((item) => item.id === id);
+  if (!partner) return;
+  const confirmed = window.confirm(`确定删除 ${partner.name}？`);
+  if (!confirmed) return;
+
+  event.currentTarget.disabled = true;
+  try {
+    await apiRequest(`/api/partners?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    partners = partners.filter((item) => item.id !== id);
+    adminState.partners = adminState.partners.filter((item) => item.id !== id);
+    await renderAdmin();
+  } catch (error) {
+    alert(error.message || "删除失败，请稍后再试。");
+    event.currentTarget.disabled = false;
   }
 }
 

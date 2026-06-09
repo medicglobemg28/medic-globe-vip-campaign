@@ -466,6 +466,21 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
+.partner-admin-item {
+  display: grid;
+  gap: 8px;
+}
+
+.danger-action {
+  justify-self: start;
+  border-color: #ffc6d0;
+  color: #a20724;
+}
+
+.danger-action:hover {
+  background: #fff1f4;
+}
+
 .success-box {
   padding: 18px;
   border: 1px solid rgba(215, 25, 53, 0.26);
