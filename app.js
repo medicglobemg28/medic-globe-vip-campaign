@@ -508,9 +508,22 @@ function renderAdminFromState(state) {
     .join("");
 
   renderLocations(state);
+  renderAreaFilters();
   renderPartnerStats(state);
   renderPartnerClickStats(state);
   renderLeadTable(state);
+}
+
+function renderAreaFilters() {
+  ["#partnerStatsAreaFilter", "#partnerClicksAreaFilter"].forEach((selector) => {
+    const select = document.querySelector(selector);
+    if (!select || select.dataset.ready === "true") return;
+    select.innerHTML = [
+      `<option value="">选择地区</option>`,
+      ...areas.map((area) => `<option value="${area}">${area}</option>`),
+    ].join("");
+    select.dataset.ready = "true";
+  });
 }
 
 function renderLocations(state) {
@@ -534,7 +547,14 @@ function renderLocations(state) {
 }
 
 function renderPartnerStats(state) {
-  document.querySelector("#partnerStats").innerHTML = partners
+  const selectedArea = document.querySelector("#partnerStatsAreaFilter")?.value || "";
+  const container = document.querySelector("#partnerStats");
+  if (!selectedArea) {
+    container.innerHTML = `<div class="stack-item">请选择地区后查看月子中心表现。</div>`;
+    return;
+  }
+  const items = partners.filter((partner) => partner.area === selectedArea);
+  container.innerHTML = items
     .map((partner) => {
       const reports = state.conversions.filter((item) => item.partnerId === partner.id);
       const signed = reports.filter((item) => item.stage === "signed");
@@ -546,13 +566,21 @@ function renderPartnerStats(state) {
         </div>
       `;
     })
-    .join("");
+    .join("") || `<div class="stack-item">这个地区暂时没有合作月子中心。</div>`;
 }
 
 function renderPartnerClickStats(state) {
   const container = document.querySelector("#partnerClickStats");
   if (!container) return;
-  const items = (state.partners || partners).slice().sort((left, right) => {
+  const selectedArea = document.querySelector("#partnerClicksAreaFilter")?.value || "";
+  if (!selectedArea) {
+    container.innerHTML = `<div class="stack-item">请选择地区后查看合作伙伴点击数。</div>`;
+    return;
+  }
+  const items = (state.partners || partners)
+    .filter((partner) => partner.area === selectedArea)
+    .slice()
+    .sort((left, right) => {
     return Number(right.clicks || 0) - Number(left.clicks || 0);
   });
   container.innerHTML =
@@ -660,9 +688,36 @@ async function seedDemoData() {
 }
 
 function exportCsv() {
+  exportLeadsCsv(adminState.leads, "all");
+}
+
+function csvEscape(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function downloadCsv(rows, filename) {
+  const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function itemMonth(value) {
+  return value ? String(value).slice(0, 7) : "";
+}
+
+function selectedCsvMonth() {
+  return document.querySelector("#csvMonth")?.value || "";
+}
+
+function exportLeadsCsv(leads, suffix) {
   const rows = [
     ["VIP Code", "Name", "Phone", "Area", "Due Date", "Interest", "Source", "Gift Redeemed", "Latest Stage"],
-    ...adminState.leads.map((lead) => {
+    ...leads.map((lead) => {
       const conversion = getLatestConversion(lead.vipCode, adminState);
       return [
         lead.vipCode,
@@ -677,17 +732,47 @@ function exportCsv() {
       ];
     }),
   ];
-  const csv = rows
-    .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-    .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "medic-globe-vip-campaign.csv";
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(rows, `sws28-vip-leads-${suffix}.csv`);
   track("admin_export_csv");
+}
+
+function exportMonthlyLeadsCsv() {
+  const month = selectedCsvMonth();
+  if (!month) {
+    alert("请先选择月份。");
+    return;
+  }
+  const leads = adminState.leads.filter((lead) => itemMonth(lead.createdAt) === month);
+  exportLeadsCsv(leads, month);
+}
+
+function exportMonthlyQrCsv() {
+  const month = selectedCsvMonth();
+  if (!month) {
+    alert("请先选择月份。");
+    return;
+  }
+  const rows = [
+    ["Month", "QR Location", "Source Code", "Type", "Registrations In Month", "Gift Redeemed In Month"],
+    ...locations.map((locationItem) => {
+      const monthlyLeads = adminState.leads.filter(
+        (lead) => lead.source === locationItem.code && itemMonth(lead.createdAt) === month,
+      );
+      const redeemed = adminState.leads.filter(
+        (lead) => lead.source === locationItem.code && itemMonth(lead.redeemedAt) === month,
+      ).length;
+      return [
+        month,
+        locationItem.label,
+        locationItem.code,
+        locationItem.type,
+        monthlyLeads.length,
+        redeemed,
+      ];
+    }),
+  ];
+  downloadCsv(rows, `sws28-qr-locations-${month}.csv`);
+  track("admin_export_qr_monthly_csv");
 }
 
 async function copyQrLinks() {
@@ -711,8 +796,12 @@ function bindEvents() {
   document.querySelector("#partnerForm").addEventListener("submit", handlePartnerSubmit);
   document.querySelector("#seedButton").addEventListener("click", seedDemoData);
   document.querySelector("#exportButton").addEventListener("click", exportCsv);
+  document.querySelector("#exportMonthlyLeadsButton").addEventListener("click", exportMonthlyLeadsCsv);
+  document.querySelector("#exportMonthlyQrButton").addEventListener("click", exportMonthlyQrCsv);
   document.querySelector("#copyLinksButton").addEventListener("click", copyQrLinks);
   document.querySelector("#leadSearch").addEventListener("input", () => renderLeadTable(adminState));
+  document.querySelector("#partnerStatsAreaFilter").addEventListener("change", () => renderPartnerStats(adminState));
+  document.querySelector("#partnerClicksAreaFilter").addEventListener("change", () => renderPartnerClickStats(adminState));
 }
 
 async function init() {

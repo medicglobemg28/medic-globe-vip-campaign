@@ -170,11 +170,25 @@
           </div>
           <div class="actions">
             <button id="seedButton" class="ghost-action" type="button">加入示范资料</button>
-            <button id="exportButton" class="ghost-action" type="button">导出 CSV</button>
+            <button id="exportButton" class="ghost-action" type="button">导出全部 Leads</button>
           </div>
         </div>
 
         <div class="metric-grid" id="metrics"></div>
+
+        <div class="panel export-panel">
+          <div class="panel-head">
+            <h3>月度 CSV</h3>
+          </div>
+          <div class="export-controls">
+            <label>
+              选择月份
+              <input id="csvMonth" type="month" />
+            </label>
+            <button id="exportMonthlyLeadsButton" class="ghost-action" type="button">导出月度 Leads</button>
+            <button id="exportMonthlyQrButton" class="ghost-action" type="button">导出月度 QR 展示点</button>
+          </div>
+        </div>
 
         <div class="dashboard-grid">
           <div class="panel">
@@ -187,6 +201,7 @@
           <div class="panel">
             <div class="panel-head">
               <h3>月子中心表现</h3>
+              <select id="partnerStatsAreaFilter" class="panel-filter" aria-label="选择月子中心表现地区"></select>
             </div>
             <div id="partnerStats" class="stack-list"></div>
           </div>
@@ -239,6 +254,7 @@
           <div class="panel">
             <div class="panel-head">
               <h3>合作伙伴点击数</h3>
+              <select id="partnerClicksAreaFilter" class="panel-filter" aria-label="选择合作伙伴点击数地区"></select>
             </div>
             <div id="partnerClickStats" class="stack-list"></div>
           </div>
