@@ -13,6 +13,20 @@ const locations = [
   { code: "yc_tcm_wing_sang", label: "YC TCM Wing Sang", type: "中医馆" },
 ];
 
+const areas = [
+  "Selangor",
+  "Kuala Lumpur",
+  "Penang",
+  "Johor",
+  "Perak",
+  "Melaka",
+  "Kedah",
+  "Negeri Sembilan",
+  "Sabah",
+  "Sarawak",
+  "其他",
+];
+
 let partners = [
   {
     id: "diamond-baby",
@@ -324,13 +338,7 @@ function renderAreaChooser(lead) {
       所在地区
       <select id="postSubmitArea" required>
         <option value="">请选择地区以查看合作月子中心名单</option>
-        <option ${lead.area === "Selangor" ? "selected" : ""}>Selangor</option>
-        <option ${lead.area === "Kuala Lumpur" ? "selected" : ""}>Kuala Lumpur</option>
-        <option ${lead.area === "Penang" ? "selected" : ""}>Penang</option>
-        <option ${lead.area === "Johor" ? "selected" : ""}>Johor</option>
-        <option ${lead.area === "Perak" ? "selected" : ""}>Perak</option>
-        <option ${lead.area === "Melaka" ? "selected" : ""}>Melaka</option>
-        <option ${lead.area === "其他" ? "selected" : ""}>其他</option>
+        ${areas.map((area) => `<option ${lead.area === area ? "selected" : ""}>${area}</option>`).join("")}
       </select>
     </label>
     <div id="postSubmitPartnerList" class="partner-list"></div>
