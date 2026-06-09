@@ -132,17 +132,26 @@ async function loadPartners() {
   } catch {
     // Keep the default fallback list if the API is not ready yet.
   }
+  renderPartnerSelect();
+}
+
+function renderPartnerSelect() {
+  const select = document.querySelector("#partnerSelect");
+  if (!select) return;
+  if (!partners.length) {
+    select.innerHTML = `<option value="">请先到后台新增合作伙伴</option>`;
+    return;
+  }
+  select.innerHTML = [
+    `<option value="">请选择月子中心</option>`,
+    ...partners.map((partner) => `<option value="${partner.id}">${partner.name} (${partner.area})</option>`),
+  ].join("");
 }
 
 function renderPartnerList(preferredArea = "") {
   const container = document.querySelector("#publicPartnerList");
   if (!container) return;
   container.innerHTML = renderGroupedPartnerList(preferredArea, true);
-
-  const select = document.querySelector("#partnerSelect");
-  select.innerHTML = partners
-    .map((partner) => `<option value="${partner.id}">${partner.name}</option>`)
-    .join("");
 }
 
 function groupedPartners(preferredArea = "", onlyPreferred = false) {
@@ -225,6 +234,7 @@ function showView() {
   document.querySelectorAll("[data-nav]").forEach((item) => {
     item.classList.toggle("active", item.dataset.nav === active);
   });
+  if (active === "partner") renderPartnerSelect();
   if (active === "admin") renderAdmin();
   track("campaign_view", { app_section: active, source: sourceFromUrl() });
 }
