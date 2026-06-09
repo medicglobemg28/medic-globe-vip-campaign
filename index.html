@@ -56,7 +56,7 @@
         <div class="source-panel">
           <span>当前 QR 来源</span>
           <strong id="currentSourceLabel">未指定来源</strong>
-          <small id="currentSourceCode">source=unknown</small>
+          <small id="currentSourceCode" hidden></small>
         </div>
       </section>
 
@@ -80,7 +80,7 @@
             </label>
             <label>
               预产期
-              <input name="dueDate" type="month" required />
+              <input name="dueDate" type="date" required />
             </label>
             <label class="checkbox-row">
               <input name="consent" type="checkbox" required />

@@ -1,4 +1,4 @@
-import { generateVipCode, getNextVipCounter, json, normalizePhone, readJson, sendWhatsApp, toLead } from "../_lib.js";
+import { generateVipCode, getNextVipCounter, json, normalizePhone, readJson, toLead } from "../_lib.js";
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
@@ -8,6 +8,9 @@ export async function onRequestPost({ request, env }) {
   if (!body.name || !phone) {
     return json({ message: "Name and WhatsApp are required." }, 400);
   }
+  if (!body.dueDate || body.dueDate < new Date().toISOString().slice(0, 10)) {
+    return json({ message: "预产期不能早过今天。" }, 400);
+  }
 
   const existing = await env.DB.prepare("SELECT * FROM leads WHERE phone = ? LIMIT 1").bind(phone).first();
   if (existing) {
@@ -15,10 +18,6 @@ export async function onRequestPost({ request, env }) {
     return json({
       duplicate: true,
       lead,
-      whatsapp: {
-        status: lead.whatsappStatus || "sent",
-        message: lead.whatsappMessage || "这个号码已经登记过，系统保留原本的 VIP 码。",
-      },
     });
   }
 
@@ -41,12 +40,6 @@ export async function onRequestPost({ request, env }) {
     createdAt,
   };
 
-  const whatsapp = await sendWhatsApp(env, {
-    ...body,
-    phone,
-    vipCode,
-  });
-
   await env.DB.prepare(
     `INSERT INTO leads (
       id, vip_code, name, phone, area, due_date, interest, source,
@@ -62,14 +55,14 @@ export async function onRequestPost({ request, env }) {
       lead.dueDate,
       lead.interest,
       source,
-      whatsapp.status,
-      whatsapp.message || "",
-      new Date().toISOString(),
+      "disabled",
+      "WhatsApp auto-send disabled",
+      null,
       createdAt,
     )
     .run();
 
-  return json({ duplicate: false, lead, whatsapp });
+  return json({ duplicate: false, lead });
 }
 
 export async function onRequestPatch({ request, env }) {

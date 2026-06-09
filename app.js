@@ -1,6 +1,7 @@
 const GA_ID = "G-KY2HEC6B46";
 
 const locations = [
+  { code: "yc_tcm_ss2", label: "YC TCM SS2", type: "中医馆" },
   { code: "tcm_ampang", label: "Ampang 中医馆", type: "中医馆" },
   { code: "gyn_pj", label: "PJ 妇科诊所", type: "妇科诊疗所" },
   { code: "baby_kl", label: "KL 母婴店", type: "母婴店" },
@@ -164,7 +165,21 @@ function renderGroupedPartnerList(preferredArea = "", onlyPreferred = false) {
 function renderSource() {
   const source = sourceFromUrl();
   document.querySelector("#currentSourceLabel").textContent = locationLabel(source);
-  document.querySelector("#currentSourceCode").textContent = `source=${source}`;
+  const sourceCode = document.querySelector("#currentSourceCode");
+  if (sourceCode) sourceCode.textContent = source;
+}
+
+function todayDateValue() {
+  const today = new Date();
+  const offset = today.getTimezoneOffset();
+  const localDate = new Date(today.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+function setDueDateMin() {
+  const dueDate = document.querySelector('input[name="dueDate"]');
+  if (!dueDate) return;
+  dueDate.min = todayDateValue();
 }
 
 function showView() {
@@ -208,8 +223,7 @@ async function handleLeadSubmit(event) {
       }),
     });
 
-    renderLeadSuccess(payload.lead, Boolean(payload.duplicate), payload.whatsapp?.status);
-    renderWhatsAppStatus(payload.whatsapp?.status, payload.whatsapp?.message);
+    renderLeadSuccess(payload.lead, Boolean(payload.duplicate));
     if (!payload.duplicate) form.reset();
 
     track(payload.duplicate ? "lead_duplicate_found" : "lead_submitted", {
@@ -217,11 +231,6 @@ async function handleLeadSubmit(event) {
       vip_code: payload.lead.vipCode,
       area: payload.lead.area,
       interest: "月子中心名单",
-    });
-    track("whatsapp_auto_send", {
-      source,
-      vip_code: payload.lead.vipCode,
-      whatsapp_status: payload.whatsapp?.status || "unknown",
     });
   } catch (error) {
     renderLeadError(error.message);
@@ -237,7 +246,7 @@ function renderFormBusy(form, isBusy) {
   });
 }
 
-function renderLeadSuccess(lead, isDuplicate, whatsappStatus = lead.whatsappStatus) {
+function renderLeadSuccess(lead, isDuplicate) {
   const template = document.querySelector("#successTemplate");
   const fragment = template.content.cloneNode(true);
   fragment.querySelector("h3").textContent = isDuplicate
@@ -250,11 +259,6 @@ function renderLeadSuccess(lead, isDuplicate, whatsappStatus = lead.whatsappStat
   const result = document.querySelector("#leadResult");
   result.innerHTML = "";
   result.appendChild(fragment);
-  const status = document.createElement("div");
-  status.id = "whatsappStatus";
-  status.className = "whatsapp-status";
-  result.appendChild(status);
-  renderWhatsAppStatus(whatsappStatus, lead.whatsappMessage);
   result.appendChild(renderGiftRedeemPanel(lead));
   result.appendChild(renderAreaChooser(lead));
 }
@@ -665,6 +669,7 @@ function bindEvents() {
 async function init() {
   await loadPartners();
   renderSource();
+  setDueDateMin();
   bindEvents();
   showView();
 }
