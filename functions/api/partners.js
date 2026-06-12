@@ -1,4 +1,4 @@
-import { json, readJson, toPartner } from "../_lib.js";
+import { json, readJson, requireAdmin, toPartner } from "../_lib.js";
 
 export async function onRequestGet({ env }) {
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
@@ -7,6 +7,8 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const unauthorized = requireAdmin(request, env);
+  if (unauthorized) return unauthorized;
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
   const body = await readJson(request);
   if (!body.name || !body.area || !body.link) {
@@ -40,6 +42,8 @@ export async function onRequestPost({ request, env }) {
 }
 
 export async function onRequestDelete({ request, env }) {
+  const unauthorized = requireAdmin(request, env);
+  if (unauthorized) return unauthorized;
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
   const url = new URL(request.url);
   const id = url.searchParams.get("id");

@@ -1,6 +1,8 @@
-import { json, toConversion, toLead, toPartner } from "../_lib.js";
+import { json, requireAdmin, toConversion, toLead, toPartner } from "../_lib.js";
 
-export async function onRequestGet({ env }) {
+export async function onRequestGet({ request, env }) {
+  const unauthorized = requireAdmin(request, env);
+  if (unauthorized) return unauthorized;
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
 
   const leads = await env.DB.prepare("SELECT * FROM leads ORDER BY created_at DESC").all();
@@ -15,6 +17,8 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const unauthorized = requireAdmin(request, env);
+  if (unauthorized) return unauthorized;
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
   const body = await request.json().catch(() => ({}));
   if (body.action !== "seed") return json({ message: "Unsupported admin action." }, 400);

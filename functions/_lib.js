@@ -16,6 +16,17 @@ export async function readJson(request) {
   }
 }
 
+export function requireAdmin(request, env) {
+  if (!env.ADMIN_PASSWORD) {
+    return json({ message: "Admin password is not configured." }, 401);
+  }
+  const password = request.headers.get("X-Admin-Password") || "";
+  if (password !== env.ADMIN_PASSWORD) {
+    return json({ message: "请输入正确的后台密码。" }, 401);
+  }
+  return null;
+}
+
 export function normalizePhone(phone) {
   return String(phone || "").replace(/[^\d+]/g, "");
 }

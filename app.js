@@ -1,4 +1,5 @@
 const GA_ID = "G-KY2HEC6B46";
+const ADMIN_PASSWORD_KEY = "sws28_admin_password";
 
 const locations = [
   { code: "yc_tcm_puchong", label: "YC TCM Puchong", type: "中医馆" },
@@ -71,8 +72,13 @@ function track(eventName, params = {}) {
 }
 
 async function apiRequest(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const adminPassword = sessionStorage.getItem(ADMIN_PASSWORD_KEY);
+  if (adminPassword && path.startsWith("/api/")) {
+    headers["X-Admin-Password"] = adminPassword;
+  }
   const response = await fetch(path, {
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    headers,
     ...options,
   });
   const payload = await response.json().catch(() => ({}));
@@ -489,6 +495,11 @@ async function handleConversionSubmit(event) {
 }
 
 async function renderAdmin() {
+  if (!isAdminLoggedIn()) {
+    showAdminLogin();
+    return;
+  }
+  showAdminContent();
   const metrics = document.querySelector("#metrics");
   metrics.innerHTML = `<div class="metric"><span>正在读取</span><strong>...</strong></div>`;
   try {
@@ -496,11 +507,59 @@ async function renderAdmin() {
     partners = adminState.partners.length ? adminState.partners : partners;
     renderAdminFromState(adminState);
   } catch (error) {
+    if (error.message.includes("密码") || error.message.includes("Admin password")) {
+      sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
+      showAdminLogin(error.message.includes("configured") ? "请先在 Cloudflare 设置 ADMIN_PASSWORD。" : "密码不正确，请再试一次。");
+      return;
+    }
     metrics.innerHTML = `<div class="metric"><span>后台连接失败</span><strong>!</strong></div>`;
     document.querySelector("#locationList").innerHTML = `<div class="stack-item">请确认 D1 binding 已设置为 DB。</div>`;
     document.querySelector("#partnerStats").innerHTML = "";
     document.querySelector("#leadTableBody").innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
   }
+}
+
+function isAdminLoggedIn() {
+  return Boolean(sessionStorage.getItem(ADMIN_PASSWORD_KEY));
+}
+
+function showAdminLogin(message = "") {
+  document.querySelector("#adminLoginForm").hidden = false;
+  document.querySelector("#adminContent").hidden = true;
+  document.querySelector("#adminLogoutButton").hidden = true;
+  document.querySelector("#seedButton").hidden = true;
+  document.querySelector("#exportButton").hidden = true;
+  document.querySelector("#adminLoginResult").textContent = message;
+}
+
+function showAdminContent() {
+  document.querySelector("#adminLoginForm").hidden = true;
+  document.querySelector("#adminContent").hidden = false;
+  document.querySelector("#adminLogoutButton").hidden = false;
+  document.querySelector("#seedButton").hidden = false;
+  document.querySelector("#exportButton").hidden = false;
+}
+
+async function handleAdminLogin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const password = new FormData(form).get("password");
+  const result = document.querySelector("#adminLoginResult");
+  sessionStorage.setItem(ADMIN_PASSWORD_KEY, password);
+  try {
+    result.textContent = "正在登入...";
+    await renderAdmin();
+    form.reset();
+  } catch {
+    sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
+    showAdminLogin("密码不正确，请再试一次。");
+  }
+}
+
+function handleAdminLogout() {
+  sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
+  adminState = { leads: [], conversions: [], partners: [] };
+  showAdminLogin("已登出后台。");
 }
 
 function renderAdminFromState(state) {
@@ -804,6 +863,8 @@ function bindEvents() {
   document.querySelector("#redeemForm").addEventListener("submit", handleRedeemSubmit);
   document.querySelector("#conversionForm").addEventListener("submit", handleConversionSubmit);
   document.querySelector("#partnerForm").addEventListener("submit", handlePartnerSubmit);
+  document.querySelector("#adminLoginForm").addEventListener("submit", handleAdminLogin);
+  document.querySelector("#adminLogoutButton").addEventListener("click", handleAdminLogout);
   document.querySelector("#seedButton").addEventListener("click", seedDemoData);
   document.querySelector("#exportButton").addEventListener("click", exportCsv);
   document.querySelector("#exportMonthlyLeadsButton").addEventListener("click", exportMonthlyLeadsCsv);

@@ -169,14 +169,25 @@
             <h2 id="adminTitle">Campaign 表现总览</h2>
           </div>
           <div class="actions">
+            <button id="adminLogoutButton" class="ghost-action" type="button" hidden>登出后台</button>
             <button id="seedButton" class="ghost-action" type="button">加入示范资料</button>
             <button id="exportButton" class="ghost-action" type="button">导出全部 Leads</button>
           </div>
         </div>
 
-        <div class="metric-grid" id="metrics"></div>
+        <form id="adminLoginForm" class="panel form-panel admin-login-panel">
+          <label>
+            后台密码
+            <input name="password" type="password" autocomplete="current-password" required placeholder="请输入后台密码" />
+          </label>
+          <button class="primary-action" type="submit">登入后台</button>
+          <div id="adminLoginResult" class="inline-result"></div>
+        </form>
 
-        <div class="panel export-panel">
+        <div id="adminContent" hidden>
+          <div class="metric-grid" id="metrics"></div>
+
+          <div class="panel export-panel">
           <div class="panel-head">
             <h3>月度 CSV</h3>
           </div>
@@ -188,9 +199,9 @@
             <button id="exportMonthlyLeadsButton" class="ghost-action" type="button">导出月度 Leads</button>
             <button id="exportMonthlyQrButton" class="ghost-action" type="button">导出月度 QR 展示点</button>
           </div>
-        </div>
+          </div>
 
-        <div class="dashboard-grid">
+          <div class="dashboard-grid">
           <div class="panel">
             <div class="panel-head">
               <h3>QR 展示点</h3>
@@ -205,9 +216,9 @@
             </div>
             <div id="partnerStats" class="stack-list"></div>
           </div>
-        </div>
+          </div>
 
-        <div class="dashboard-grid partner-admin-grid">
+          <div class="dashboard-grid partner-admin-grid">
           <form id="partnerForm" class="panel form-panel">
             <div class="panel-head compact-head">
               <h3>新增合作伙伴</h3>
@@ -258,9 +269,9 @@
             </div>
             <div id="partnerClickStats" class="stack-list"></div>
           </div>
-        </div>
+          </div>
 
-        <div class="panel table-panel">
+          <div class="panel table-panel">
           <div class="panel-head">
             <h3>Leads 与 VIP 码</h3>
             <input id="leadSearch" class="table-search" placeholder="搜姓名、电话、VIP码或来源" />
@@ -279,6 +290,7 @@
               </thead>
               <tbody id="leadTableBody"></tbody>
             </table>
+          </div>
           </div>
         </div>
       </section>
