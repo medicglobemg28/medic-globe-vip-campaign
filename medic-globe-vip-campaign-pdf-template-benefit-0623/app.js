@@ -1,0 +1,906 @@
+const GA_ID = "G-KY2HEC6B46";
+const ADMIN_PASSWORD_KEY = "sws28_admin_password";
+
+const locations = [
+  { code: "yc_tcm_puchong", label: "YC TCM Puchong", type: "中医馆" },
+  { code: "yc_tcm_ss2", label: "YC TCM SS2", type: "中医馆" },
+  { code: "yc_tcm_cheras", label: "YC TCM Cheras", type: "中医馆" },
+  { code: "yc_tcm_kuchai_lama", label: "YC TCM Kuchai Lama", type: "中医馆" },
+  { code: "yc_tcm_oug", label: "YC TCM OUG", type: "中医馆" },
+  { code: "yc_tcm_klang", label: "YC TCM Klang", type: "中医馆" },
+  { code: "yc_tcm_kota_kemuning", label: "YC TCM Kota Kemuning", type: "中医馆" },
+  { code: "yc_tcm_balakong", label: "YC TCM Balakong", type: "中医馆" },
+  { code: "yc_tcm_sws_medical", label: "YC TCM SWS Medical", type: "中医馆" },
+  { code: "yc_tcm_wing_sang", label: "YC TCM Wing Sang", type: "中医馆" },
+];
+
+const areas = [
+  "Selangor",
+  "Kuala Lumpur",
+  "Penang",
+  "Johor",
+  "Perak",
+  "Melaka",
+  "Kedah",
+  "Negeri Sembilan",
+  "Sabah",
+  "Sarawak",
+  "其他",
+];
+
+let partners = [
+  {
+    id: "diamond-baby",
+    name: "Diamond Baby Confinement Center",
+    area: "Selangor",
+    link: "https://www.facebook.com/",
+    linkLabel: "Facebook",
+  },
+  {
+    id: "yk-home",
+    name: "YK Confinement Home",
+    area: "Kuala Lumpur",
+    link: "https://www.facebook.com/",
+    linkLabel: "Facebook",
+  },
+  {
+    id: "mama-care",
+    name: "Mama Care Confinement",
+    area: "Penang",
+    link: "https://www.youtube.com/",
+    linkLabel: "Video",
+  },
+  {
+    id: "harmony-mom",
+    name: "Harmony Mom Care",
+    area: "Johor",
+    link: "https://www.facebook.com/",
+    linkLabel: "Facebook",
+  },
+];
+
+let adminState = { leads: [], conversions: [], partners: [] };
+let internalMode = false;
+
+function track(eventName, params = {}) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", eventName, {
+      send_to: GA_ID,
+      ...params,
+    });
+  }
+}
+
+async function apiRequest(path, options = {}) {
+  const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
+  const adminPassword = sessionStorage.getItem(ADMIN_PASSWORD_KEY);
+  if (adminPassword && path.startsWith("/api/")) {
+    headers["X-Admin-Password"] = adminPassword;
+  }
+  const response = await fetch(path, {
+    headers,
+    ...options,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || "Request failed");
+  }
+  return payload;
+}
+
+function sourceFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get("source") || params.get("utm_source") || "unknown";
+}
+
+function locationLabel(code) {
+  const knownLocation = locations.find((location) => location.code === code);
+  if (knownLocation) return knownLocation.label;
+  return String(code || "unknown")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => {
+      const upper = part.toUpperCase();
+      if (["YC", "TCM", "SS2", "PJ", "KL", "VIP"].includes(upper)) return upper;
+      return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+function normalizePhone(phone) {
+  return String(phone || "").replace(/[^\d+]/g, "");
+}
+
+function formatDate(iso) {
+  if (!iso) return "-";
+  return new Intl.DateTimeFormat("en-MY", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(iso));
+}
+
+function getLatestConversion(vipCode, state) {
+  return [...state.conversions].reverse().find((item) => item.vipCode === vipCode);
+}
+
+function stageLabel(stage) {
+  return {
+    consulted: "已咨询",
+    visited: "已预约参观",
+    signed: "已签单",
+  }[stage] || "未回报";
+}
+
+async function loadPartners() {
+  try {
+    const payload = await apiRequest("/api/partners");
+    partners = payload.partners.length ? payload.partners : partners;
+  } catch {
+    // Keep the default fallback list if the API is not ready yet.
+  }
+  renderPartnerSelect();
+}
+
+function renderPartnerSelect() {
+  const select = document.querySelector("#partnerSelect");
+  if (!select) return;
+  if (!partners.length) {
+    select.innerHTML = `<option value="">请先到后台新增合作伙伴</option>`;
+    return;
+  }
+  select.innerHTML = [
+    `<option value="">请选择月子中心</option>`,
+    ...partners.map((partner) => `<option value="${partner.id}">${partner.name} (${partner.area})</option>`),
+  ].join("");
+}
+
+function renderPartnerList(preferredArea = "") {
+  const container = document.querySelector("#publicPartnerList");
+  if (!container) return;
+  container.innerHTML = renderGroupedPartnerList(preferredArea, true);
+}
+
+function groupedPartners(preferredArea = "", onlyPreferred = false) {
+  const groups = partners.reduce((items, partner) => {
+    items[partner.area] = items[partner.area] || [];
+    items[partner.area].push(partner);
+    return items;
+  }, {});
+  let areas = Object.keys(groups);
+  if (onlyPreferred && preferredArea) {
+    areas = areas.filter((area) => area === preferredArea);
+  }
+  areas = areas.sort((left, right) => {
+    if (left === preferredArea) return -1;
+    if (right === preferredArea) return 1;
+    return left.localeCompare(right);
+  });
+  return areas.map((area) => ({ area, partners: groups[area] }));
+}
+
+function renderGroupedPartnerList(preferredArea = "", onlyPreferred = false) {
+  const groups = groupedPartners(preferredArea, onlyPreferred);
+  if (!groups.length) {
+    return `<div class="partner-item"><strong>暂时没有这个地区的合作月子中心</strong><small>请选择其他地区或联系 永生 SWS28。</small></div>`;
+  }
+  return groups
+    .map(
+      (group) => `
+        <section class="partner-group">
+          <h4>${group.area}</h4>
+          <div class="partner-list compact">
+            ${group.partners
+              .map(
+                (partner) => `
+                  <a class="partner-item partner-link" href="/api/partner-click?id=${encodeURIComponent(partner.id)}" target="_blank" rel="noopener noreferrer">
+                    <strong>${partner.name}</strong>
+                    <small>${partner.linkLabel} · 点击查看详情 · ${Number(partner.clicks || 0)} 次点击</small>
+                  </a>
+                `,
+              )
+              .join("")}
+          </div>
+        </section>
+      `,
+    )
+    .join("");
+}
+
+function renderSource() {
+  const source = sourceFromUrl();
+  document.querySelector("#currentSourceLabel").textContent = locationLabel(source);
+  const sourceCode = document.querySelector("#currentSourceCode");
+  if (sourceCode) sourceCode.textContent = source;
+}
+
+function todayDateValue() {
+  const today = new Date();
+  const offset = today.getTimezoneOffset();
+  const localDate = new Date(today.getTime() - offset * 60 * 1000);
+  return localDate.toISOString().slice(0, 10);
+}
+
+function setDueDateMin() {
+  const dueDate = document.querySelector('input[name="dueDate"]');
+  if (!dueDate) return;
+  dueDate.min = todayDateValue();
+}
+
+function showView() {
+  internalMode = internalMode || new URLSearchParams(window.location.search).get("mode") === "admin";
+  document.body.classList.toggle("internal-mode", internalMode);
+  let active = (window.location.hash || "#register").replace("#", "");
+  if (!internalMode && ["redeem", "partner", "admin"].includes(active)) {
+    active = "register";
+    history.replaceState(null, "", `${location.pathname}${location.search}#register`);
+  }
+  document.querySelectorAll(".view").forEach((view) => {
+    view.classList.toggle("active", view.id === active);
+  });
+  document.querySelectorAll("[data-nav]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.nav === active);
+  });
+  if (active === "partner") renderPartnerSelect();
+  if (active === "admin") renderAdmin();
+  track("campaign_view", { app_section: active, source: sourceFromUrl() });
+}
+
+async function handleLeadSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  const source = sourceFromUrl();
+
+  try {
+    renderFormBusy(form, true);
+    const payload = await apiRequest("/api/leads", {
+      method: "POST",
+      body: JSON.stringify({
+        name: data.name.trim(),
+        phone: normalizePhone(data.phone),
+        area: "",
+        dueDate: data.dueDate,
+        interest: "月子中心名单",
+        source,
+        sourceLabel: locationLabel(source),
+        partners: partners.map((partner) => `${partner.name} (${partner.area}) - ${partner.link}`),
+        redeemLink: `${location.origin}${location.pathname}#redeem`,
+      }),
+    });
+
+    renderLeadSuccess(payload.lead, Boolean(payload.duplicate));
+    if (!payload.duplicate) form.reset();
+
+    track(payload.duplicate ? "lead_duplicate_found" : "lead_submitted", {
+      source,
+      vip_code: payload.lead.vipCode,
+      area: payload.lead.area,
+      interest: "月子中心名单",
+    });
+  } catch (error) {
+    renderLeadError(error.message);
+    track("lead_submit_failed", { source });
+  } finally {
+    renderFormBusy(form, false);
+  }
+}
+
+function renderFormBusy(form, isBusy) {
+  form.querySelectorAll("button, input, select, textarea").forEach((node) => {
+    node.disabled = isBusy;
+  });
+}
+
+function renderLeadSuccess(lead, isDuplicate) {
+  const template = document.querySelector("#successTemplate");
+  const fragment = template.content.cloneNode(true);
+  fragment.querySelector("h3").textContent = isDuplicate
+    ? `${lead.name}，你已经登记过了`
+    : `${lead.name}，这是你的专属 VIP 码`;
+  fragment.querySelector(".large-code").textContent = lead.vipCode;
+  fragment.querySelector(".muted").textContent =
+    "请截图保存。凭这个 VIP 码可在柜台领取小礼物，并向合作月子中心查询专属优惠。";
+  const successBox = fragment.querySelector(".success-box");
+  successBox.appendChild(renderPdfBenefit(lead));
+
+  const result = document.querySelector("#leadResult");
+  result.innerHTML = "";
+  result.appendChild(fragment);
+  result.appendChild(renderGiftRedeemPanel(lead));
+  result.appendChild(renderAreaChooser(lead));
+}
+
+function renderPdfBenefit(lead) {
+  const panel = document.createElement("div");
+  panel.className = "benefit-panel";
+  panel.innerHTML = `
+    <strong>登记福利</strong>
+    <span>好孕天书 PDF 已解锁，可以下载保存慢慢阅读。</span>
+    <a class="download-action" href="assets/hao-yun-tian-shu.pdf" download="好孕天书.pdf">
+      下载好孕天书 PDF
+    </a>
+  `;
+
+  panel.querySelector(".download-action").addEventListener("click", () => {
+    track("pregnancy_ebook_downloaded", { vip_code: lead.vipCode, source: lead.source });
+  });
+
+  return panel;
+}
+
+function renderGiftRedeemPanel(lead) {
+  const panel = document.createElement("div");
+  panel.className = "gift-panel";
+  const redeemedDate = lead.redeemedAt ? formatDate(lead.redeemedAt) : "";
+  panel.innerHTML = lead.giftRedeemed
+    ? `
+      <strong>小礼物已领取</strong>
+      <span>领取日期：${redeemedDate}</span>
+    `
+    : `
+      <strong>柜台领取确认</strong>
+      <span>到柜台领取小礼物时，请由工作人员点击确认。</span>
+      <button class="ghost-action" type="button" id="inlineRedeemButton">确认已经领取</button>
+      <span id="inlineRedeemResult"></span>
+    `;
+
+  const button = panel.querySelector("#inlineRedeemButton");
+  if (button) {
+    button.addEventListener("click", async () => {
+      const result = panel.querySelector("#inlineRedeemResult");
+      button.disabled = true;
+      try {
+        const payload = await apiRequest("/api/redeem", {
+          method: "POST",
+          body: JSON.stringify({ action: "confirm", vipCode: lead.vipCode }),
+        });
+        result.textContent = `领取日期：${formatDate(payload.lead.redeemedAt)}`;
+        button.textContent = "已领取";
+        track("gift_redeemed_inline", { vip_code: lead.vipCode, source: lead.source });
+      } catch (error) {
+        result.textContent = error.message || "确认失败，请稍后再试。";
+        button.disabled = false;
+      }
+    });
+  }
+  return panel;
+}
+
+function renderAreaChooser(lead) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "area-panel";
+  wrapper.innerHTML = `
+    <label>
+      所在地区
+      <select id="postSubmitArea" required>
+        <option value="">请选择地区以查看合作月子中心名单</option>
+        ${areas.map((area) => `<option ${lead.area === area ? "selected" : ""}>${area}</option>`).join("")}
+      </select>
+    </label>
+    <div id="postSubmitPartnerList" class="partner-list"></div>
+  `;
+
+  const select = wrapper.querySelector("#postSubmitArea");
+  const list = wrapper.querySelector("#postSubmitPartnerList");
+  const renderList = (area) => {
+    list.innerHTML = area ? renderGroupedPartnerList(area, true) : "";
+  };
+  renderList(lead.area);
+  select.addEventListener("change", async () => {
+    const area = select.value;
+    renderList(area);
+    if (!area) return;
+    try {
+      await apiRequest("/api/leads", {
+        method: "PATCH",
+        body: JSON.stringify({ vipCode: lead.vipCode, area }),
+      });
+      track("lead_area_selected", { vip_code: lead.vipCode, area });
+    } catch {
+      // The list can still be shown even if saving the area is temporarily unavailable.
+    }
+  });
+  return wrapper;
+}
+
+function renderLeadError(message) {
+  document.querySelector("#leadResult").innerHTML = `
+    <h3>暂时无法提交</h3>
+    <p>${message || "请稍后再试，或联系 永生 SWS28 team。"}</p>
+  `;
+}
+
+function renderWhatsAppStatus(status, message = "") {
+  const node = document.querySelector("#whatsappStatus");
+  if (!node) return;
+
+  const copy = {
+    sending: ["发送中", "正在通过 WhatsApp 自动发送 VIP 码与月子中心名单。"],
+    sent: ["WhatsApp 已发送", message || "VIP 码与月子中心名单已经自动发送。"],
+    "dry-run": ["WhatsApp 测试模式", message || "已模拟发送。加入 API credentials 后会真实发送。"],
+    offline: ["WhatsApp 未连接", message],
+    failed: ["WhatsApp 发送失败", message],
+  }[status] || ["WhatsApp 状态", message || "等待发送。"];
+
+  node.dataset.status = status || "pending";
+  node.innerHTML = `
+    <strong>${copy[0]}</strong>
+    <span>${copy[1]}</span>
+  `;
+}
+
+async function handleRedeemSubmit(event) {
+  event.preventDefault();
+  const lookup = new FormData(event.currentTarget).get("lookup").trim();
+  const result = document.querySelector("#redeemResult");
+
+  try {
+    const payload = await apiRequest("/api/redeem", {
+      method: "POST",
+      body: JSON.stringify({ action: "lookup", lookup }),
+    });
+    const lead = payload.lead;
+
+    if (lead.giftRedeemed) {
+      result.innerHTML = `
+        <h3>已领取</h3>
+        <p><strong>${lead.name}</strong> 的小礼物已在 ${formatDate(lead.redeemedAt)} 领取。</p>
+        <p class="large-code">${lead.vipCode}</p>
+      `;
+      track("gift_redeem_duplicate", { vip_code: lead.vipCode, source: lead.source });
+      return;
+    }
+
+    result.innerHTML = `
+      <h3>可以领取</h3>
+      <p><strong>${lead.name}</strong> 来自 ${locationLabel(lead.source)}。</p>
+      <p class="large-code">${lead.vipCode}</p>
+      <button class="primary-action" id="confirmRedeemButton" type="button">确认已领取</button>
+    `;
+
+    document.querySelector("#confirmRedeemButton").addEventListener("click", async () => {
+      const confirmPayload = await apiRequest("/api/redeem", {
+        method: "POST",
+        body: JSON.stringify({ action: "confirm", vipCode: lead.vipCode }),
+      });
+      const redeemedLead = confirmPayload.lead;
+      result.innerHTML = `
+        <h3>领取完成</h3>
+        <p>${redeemedLead.name} 的小礼物状态已更新为已领取。</p>
+        <p class="large-code">${redeemedLead.vipCode}</p>
+      `;
+      track("gift_redeemed", { vip_code: redeemedLead.vipCode, source: redeemedLead.source });
+    });
+  } catch (error) {
+    result.innerHTML = `
+      <h3>找不到记录</h3>
+      <p>${error.message || "请确认 VIP 码或 WhatsApp 是否输入正确。"}</p>
+    `;
+    track("gift_lookup_failed", { lookup_type: lookup.toLowerCase().startsWith("vip") ? "vip" : "phone" });
+  }
+}
+
+async function handleConversionSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  const result = document.querySelector("#conversionResult");
+
+  try {
+    renderFormBusy(form, true);
+    const payload = await apiRequest("/api/conversions", {
+      method: "POST",
+      body: JSON.stringify({
+        partnerId: data.partner,
+        vipCode: data.vipCode.trim().toUpperCase(),
+        stage: data.stage,
+        amount: Number(data.amount || 0),
+        notes: data.notes.trim(),
+      }),
+    });
+    form.reset();
+    result.textContent = `已记录 ${payload.conversion.vipCode}：${stageLabel(payload.conversion.stage)}。`;
+    track("partner_conversion_reported", {
+      vip_code: payload.conversion.vipCode,
+      partner_id: payload.conversion.partnerId,
+      stage: payload.conversion.stage,
+      value: payload.conversion.amount,
+    });
+  } catch (error) {
+    result.textContent = error.message || "提交失败，请确认 VIP 码。";
+    track("partner_report_failed", { vip_code: data.vipCode });
+  } finally {
+    renderFormBusy(form, false);
+  }
+}
+
+async function renderAdmin() {
+  if (!isAdminLoggedIn()) {
+    showAdminLogin();
+    return;
+  }
+  showAdminContent();
+  const metrics = document.querySelector("#metrics");
+  metrics.innerHTML = `<div class="metric"><span>正在读取</span><strong>...</strong></div>`;
+  try {
+    adminState = await apiRequest("/api/admin");
+    partners = adminState.partners.length ? adminState.partners : partners;
+    renderAdminFromState(adminState);
+  } catch (error) {
+    if (error.message.includes("密码") || error.message.includes("Admin password")) {
+      sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
+      showAdminLogin(error.message.includes("configured") ? "请先在 Cloudflare 设置 ADMIN_PASSWORD。" : "密码不正确，请再试一次。");
+      return;
+    }
+    metrics.innerHTML = `<div class="metric"><span>后台连接失败</span><strong>!</strong></div>`;
+    document.querySelector("#locationList").innerHTML = `<div class="stack-item">请确认 D1 binding 已设置为 DB。</div>`;
+    document.querySelector("#partnerStats").innerHTML = "";
+    document.querySelector("#leadTableBody").innerHTML = `<tr><td colspan="6">${error.message}</td></tr>`;
+  }
+}
+
+function isAdminLoggedIn() {
+  return Boolean(sessionStorage.getItem(ADMIN_PASSWORD_KEY));
+}
+
+function showAdminLogin(message = "") {
+  document.querySelector("#adminLoginForm").hidden = false;
+  document.querySelector("#adminContent").hidden = true;
+  document.querySelector("#adminLogoutButton").hidden = true;
+  document.querySelector("#seedButton").hidden = true;
+  document.querySelector("#exportButton").hidden = true;
+  document.querySelector("#adminLoginResult").textContent = message;
+}
+
+function showAdminContent() {
+  document.querySelector("#adminLoginForm").hidden = true;
+  document.querySelector("#adminContent").hidden = false;
+  document.querySelector("#adminLogoutButton").hidden = false;
+  document.querySelector("#seedButton").hidden = false;
+  document.querySelector("#exportButton").hidden = false;
+}
+
+async function handleAdminLogin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const password = new FormData(form).get("password");
+  const result = document.querySelector("#adminLoginResult");
+  sessionStorage.setItem(ADMIN_PASSWORD_KEY, password);
+  try {
+    result.textContent = "正在登入...";
+    await renderAdmin();
+    form.reset();
+  } catch {
+    sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
+    showAdminLogin("密码不正确，请再试一次。");
+  }
+}
+
+function handleAdminLogout() {
+  sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
+  adminState = { leads: [], conversions: [], partners: [] };
+  showAdminLogin("已登出后台。");
+}
+
+function renderAdminFromState(state) {
+  const signed = state.conversions.filter((item) => item.stage === "signed");
+  const revenue = signed.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const redeemed = state.leads.filter((lead) => lead.giftRedeemed).length;
+
+  document.querySelector("#metrics").innerHTML = [
+    ["总登记", state.leads.length],
+    ["已领取礼物", redeemed],
+    ["已签单", signed.length],
+    ["签单金额 RM", revenue.toLocaleString("en-MY")],
+  ]
+    .map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`)
+    .join("");
+
+  renderLocations(state);
+  renderAreaFilters();
+  renderPartnerStats(state);
+  renderPartnerClickStats(state);
+  renderLeadTable(state);
+}
+
+function renderAreaFilters() {
+  ["#partnerStatsAreaFilter", "#partnerClicksAreaFilter"].forEach((selector) => {
+    const select = document.querySelector(selector);
+    if (!select || select.dataset.ready === "true") return;
+    select.innerHTML = [
+      `<option value="">选择地区</option>`,
+      ...areas.map((area) => `<option value="${area}">${area}</option>`),
+    ].join("");
+    select.dataset.ready = "true";
+  });
+}
+
+function renderLocations(state) {
+  const baseUrl = `${location.origin}${location.pathname}`;
+  document.querySelector("#locationList").innerHTML = locations
+    .map((locationItem) => {
+      const count = state.leads.filter((lead) => lead.source === locationItem.code).length;
+      const redeemed = state.leads.filter(
+        (lead) => lead.source === locationItem.code && lead.giftRedeemed,
+      ).length;
+      const link = `${baseUrl}?source=${locationItem.code}#register`;
+      return `
+        <div class="stack-item">
+          <strong>${locationItem.label}</strong>
+          <small>${locationItem.type} · ${count} 登记 · ${redeemed} 已领取</small>
+          <small>${link}</small>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderPartnerStats(state) {
+  const selectedArea = document.querySelector("#partnerStatsAreaFilter")?.value || "";
+  const container = document.querySelector("#partnerStats");
+  if (!selectedArea) {
+    container.innerHTML = `<div class="stack-item">请选择地区后查看月子中心表现。</div>`;
+    return;
+  }
+  const items = partners.filter((partner) => partner.area === selectedArea);
+  container.innerHTML = items
+    .map((partner) => {
+      const reports = state.conversions.filter((item) => item.partnerId === partner.id);
+      const signed = reports.filter((item) => item.stage === "signed");
+      const revenue = signed.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+      return `
+        <div class="stack-item">
+          <strong>${partner.name}</strong>
+          <small>${reports.length} 回报 · ${signed.length} 签单 · RM ${revenue.toLocaleString("en-MY")}</small>
+        </div>
+      `;
+    })
+    .join("") || `<div class="stack-item">这个地区暂时没有合作月子中心。</div>`;
+}
+
+function renderPartnerClickStats(state) {
+  const container = document.querySelector("#partnerClickStats");
+  if (!container) return;
+  const selectedArea = document.querySelector("#partnerClicksAreaFilter")?.value || "";
+  if (!selectedArea) {
+    container.innerHTML = `<div class="stack-item">请选择地区后查看合作伙伴点击数。</div>`;
+    return;
+  }
+  const items = (state.partners || partners)
+    .filter((partner) => partner.area === selectedArea)
+    .slice()
+    .sort((left, right) => {
+    return Number(right.clicks || 0) - Number(left.clicks || 0);
+  });
+  container.innerHTML =
+    items
+      .map(
+        (partner) => `
+          <div class="stack-item partner-admin-item">
+            <strong>${partner.name}</strong>
+            <small>${partner.area} · ${Number(partner.clicks || 0)} 点击 · ${partner.linkLabel}</small>
+            <button class="small-action danger-action" type="button" data-delete-partner="${partner.id}">
+              删除
+            </button>
+          </div>
+        `,
+      )
+      .join("") || `<div class="stack-item">还没有合作伙伴资料。</div>`;
+
+  container.querySelectorAll("[data-delete-partner]").forEach((button) => {
+    button.addEventListener("click", handlePartnerDelete);
+  });
+}
+
+async function handlePartnerSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  const result = document.querySelector("#partnerFormResult");
+
+  try {
+    renderFormBusy(form, true);
+    const payload = await apiRequest("/api/partners", {
+      method: "POST",
+      body: JSON.stringify({
+        name: data.name.trim(),
+        area: data.area,
+        link: data.link.trim(),
+        linkLabel: data.linkLabel,
+      }),
+    });
+    partners.push(payload.partner);
+    form.reset();
+    result.textContent = `已加入：${payload.partner.name}`;
+    await renderAdmin();
+  } catch (error) {
+    result.textContent = error.message || "新增失败，请检查链接。";
+  } finally {
+    renderFormBusy(form, false);
+  }
+}
+
+async function handlePartnerDelete(event) {
+  const id = event.currentTarget.dataset.deletePartner;
+  const partner = partners.find((item) => item.id === id) || adminState.partners.find((item) => item.id === id);
+  if (!partner) return;
+  const confirmed = window.confirm(`确定删除 ${partner.name}？`);
+  if (!confirmed) return;
+
+  event.currentTarget.disabled = true;
+  try {
+    await apiRequest(`/api/partners?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    partners = partners.filter((item) => item.id !== id);
+    adminState.partners = adminState.partners.filter((item) => item.id !== id);
+    await renderAdmin();
+  } catch (error) {
+    alert(error.message || "删除失败，请稍后再试。");
+    event.currentTarget.disabled = false;
+  }
+}
+
+function renderLeadTable(state) {
+  const query = document.querySelector("#leadSearch").value.trim().toLowerCase();
+  const rows = state.leads.filter((lead) => {
+    const text = `${lead.vipCode} ${lead.name} ${lead.phone} ${lead.source}`.toLowerCase();
+    return text.includes(query);
+  });
+
+  document.querySelector("#leadTableBody").innerHTML =
+    rows
+      .map((lead) => {
+        const conversion = getLatestConversion(lead.vipCode, state);
+        const giftClass = lead.giftRedeemed ? "" : "warning";
+        const conversionClass = conversion?.stage === "signed" ? "" : "warning";
+        return `
+          <tr>
+            <td><strong>${lead.vipCode}</strong><br><small>${formatDate(lead.createdAt)}</small></td>
+            <td>${lead.name}<br><small>${lead.area} · ${lead.dueDate}</small></td>
+            <td>${lead.phone}</td>
+            <td>${locationLabel(lead.source)}</td>
+            <td><span class="badge ${giftClass}">${lead.giftRedeemed ? "已领取" : "未领取"}</span></td>
+            <td><span class="badge ${conversionClass}">${conversion ? stageLabel(conversion.stage) : "未回报"}</span></td>
+          </tr>
+        `;
+      })
+      .join("") || `<tr><td colspan="6">还没有符合条件的资料。</td></tr>`;
+}
+
+async function seedDemoData() {
+  try {
+    await apiRequest("/api/admin", { method: "POST", body: JSON.stringify({ action: "seed" }) });
+    await renderAdmin();
+    track("demo_data_seeded");
+  } catch (error) {
+    alert(error.message || "示范资料加入失败。");
+  }
+}
+
+function exportCsv() {
+  exportLeadsCsv(adminState.leads, "all");
+}
+
+function csvEscape(value) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function downloadCsv(rows, filename) {
+  const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function itemMonth(value) {
+  return value ? String(value).slice(0, 7) : "";
+}
+
+function selectedCsvMonth() {
+  return document.querySelector("#csvMonth")?.value || "";
+}
+
+function exportLeadsCsv(leads, suffix) {
+  const rows = [
+    ["VIP Code", "Name", "Phone", "Area", "Due Date", "Interest", "Source", "Gift Redeemed", "Latest Stage"],
+    ...leads.map((lead) => {
+      const conversion = getLatestConversion(lead.vipCode, adminState);
+      return [
+        lead.vipCode,
+        lead.name,
+        lead.phone,
+        lead.area,
+        lead.dueDate,
+        lead.interest,
+        lead.source,
+        lead.giftRedeemed ? "Yes" : "No",
+        conversion ? stageLabel(conversion.stage) : "None",
+      ];
+    }),
+  ];
+  downloadCsv(rows, `sws28-vip-leads-${suffix}.csv`);
+  track("admin_export_csv");
+}
+
+function exportMonthlyLeadsCsv() {
+  const month = selectedCsvMonth();
+  if (!month) {
+    alert("请先选择月份。");
+    return;
+  }
+  const leads = adminState.leads.filter((lead) => itemMonth(lead.createdAt) === month);
+  exportLeadsCsv(leads, month);
+}
+
+function exportMonthlyQrCsv() {
+  const month = selectedCsvMonth();
+  if (!month) {
+    alert("请先选择月份。");
+    return;
+  }
+  const rows = [
+    ["Month", "QR Location", "Source Code", "Type", "Registrations In Month", "Gift Redeemed In Month"],
+    ...locations.map((locationItem) => {
+      const monthlyLeads = adminState.leads.filter(
+        (lead) => lead.source === locationItem.code && itemMonth(lead.createdAt) === month,
+      );
+      const redeemed = adminState.leads.filter(
+        (lead) => lead.source === locationItem.code && itemMonth(lead.redeemedAt) === month,
+      ).length;
+      return [
+        month,
+        locationItem.label,
+        locationItem.code,
+        locationItem.type,
+        monthlyLeads.length,
+        redeemed,
+      ];
+    }),
+  ];
+  downloadCsv(rows, `sws28-qr-locations-${month}.csv`);
+  track("admin_export_qr_monthly_csv");
+}
+
+async function copyQrLinks() {
+  const baseUrl = `${location.origin}${location.pathname}`;
+  const links = locations
+    .map((locationItem) => `${locationItem.label}: ${baseUrl}?source=${locationItem.code}#register`)
+    .join("\n");
+  await navigator.clipboard.writeText(links);
+  document.querySelector("#copyLinksButton").textContent = "已复制";
+  setTimeout(() => {
+    document.querySelector("#copyLinksButton").textContent = "复制链接";
+  }, 1600);
+  track("admin_copy_qr_links");
+}
+
+function bindEvents() {
+  window.addEventListener("hashchange", showView);
+  document.querySelector("#leadForm").addEventListener("submit", handleLeadSubmit);
+  document.querySelector("#redeemForm").addEventListener("submit", handleRedeemSubmit);
+  document.querySelector("#conversionForm").addEventListener("submit", handleConversionSubmit);
+  document.querySelector("#partnerForm").addEventListener("submit", handlePartnerSubmit);
+  document.querySelector("#adminLoginForm").addEventListener("submit", handleAdminLogin);
+  document.querySelector("#adminLogoutButton").addEventListener("click", handleAdminLogout);
+  document.querySelector("#seedButton").addEventListener("click", seedDemoData);
+  document.querySelector("#exportButton").addEventListener("click", exportCsv);
+  document.querySelector("#exportMonthlyLeadsButton").addEventListener("click", exportMonthlyLeadsCsv);
+  document.querySelector("#exportMonthlyQrButton").addEventListener("click", exportMonthlyQrCsv);
+  document.querySelector("#copyLinksButton").addEventListener("click", copyQrLinks);
+  document.querySelector("#leadSearch").addEventListener("input", () => renderLeadTable(adminState));
+  document.querySelector("#partnerStatsAreaFilter").addEventListener("change", () => renderPartnerStats(adminState));
+  document.querySelector("#partnerClicksAreaFilter").addEventListener("change", () => renderPartnerClickStats(adminState));
+}
+
+async function init() {
+  await loadPartners();
+  renderSource();
+  setDueDateMin();
+  bindEvents();
+  showView();
+}
+
+init();
