@@ -11,7 +11,7 @@ const locations = [
   { code: "yc_tcm_kota_kemuning", label: "YC TCM Kota Kemuning", type: "中医馆" },
   { code: "yc_tcm_balakong", label: "YC TCM Balakong", type: "中医馆" },
   { code: "yc_tcm_sws_medical", label: "SWS Medical", type: "中医馆" },
-  { code: "yc_tcm_wing_sang", label: "SWS Medical BDC", type: "中医馆" },
+  { code: "yc_tcm_wing_sang", label: "SWS MedicalBDC", type: "中医馆" },
 ];
 
 const areas = [
