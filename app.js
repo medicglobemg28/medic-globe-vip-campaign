@@ -10,8 +10,8 @@ const locations = [
   { code: "yc_tcm_klang", label: "YC TCM Klang", type: "中医馆" },
   { code: "yc_tcm_kota_kemuning", label: "YC TCM Kota Kemuning", type: "中医馆" },
   { code: "yc_tcm_balakong", label: "YC TCM Balakong", type: "中医馆" },
-  { code: "yc_tcm_sws_medical", label: "YC TCM SWS Medical", type: "中医馆" },
-  { code: "yc_tcm_wing_sang", label: "YC TCM Wing Sang", type: "中医馆" },
+  { code: "sws_medical", label: "SWS Medical Kepong", type: "中医馆" },
+  { code: "wing_sang", label: "SWS Medical BDC", type: "中医馆" },
   { code: "sws28_fair", label: "SWS28 Fair", type: "展会" },
 ];
 
