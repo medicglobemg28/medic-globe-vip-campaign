@@ -10,8 +10,9 @@ const locations = [
   { code: "yc_tcm_klang", label: "YC TCM Klang", type: "中医馆" },
   { code: "yc_tcm_kota_kemuning", label: "YC TCM Kota Kemuning", type: "中医馆" },
   { code: "yc_tcm_balakong", label: "YC TCM Balakong", type: "中医馆" },
-  { code: "yc_tcm_sws_medical", label: "SWS Medical", type: "中医馆" },
-  { code: "yc_tcm_wing_sang", label: "SWS MedicalBDC", type: "中医馆" },
+  { code: "yc_tcm_sws_medical", label: "YC TCM SWS Medical", type: "中医馆" },
+  { code: "yc_tcm_wing_sang", label: "YC TCM Wing Sang", type: "中医馆" },
+  { code: "sws28_fair", label: "SWS28 Fair", type: "展会" },
 ];
 
 const areas = [
@@ -59,7 +60,7 @@ let partners = [
   },
 ];
 
-let adminState = { leads: [], conversions: [], partners: [] };
+let adminState = { leads: [], conversions: [], partners: [], scans: [], registrations: [] };
 let internalMode = false;
 
 function track(eventName, params = {}) {
@@ -213,6 +214,27 @@ function renderSource() {
   if (sourceCode) sourceCode.textContent = source;
 }
 
+function shouldRecordScan() {
+  const params = new URLSearchParams(window.location.search);
+  return !params.has("mode") && sourceFromUrl() !== "unknown";
+}
+
+async function recordQrScan() {
+  if (!shouldRecordScan()) return;
+  try {
+    await apiRequest("/api/scans", {
+      method: "POST",
+      body: JSON.stringify({
+        source: sourceFromUrl(),
+        path: `${location.pathname}${location.search}${location.hash}`,
+      }),
+    });
+    track("qr_scan_recorded", { source: sourceFromUrl() });
+  } catch {
+    // Scanning should never block registration if tracking is temporarily unavailable.
+  }
+}
+
 function todayDateValue() {
   const today = new Date();
   const offset = today.getTimezoneOffset();
@@ -300,12 +322,32 @@ function renderLeadSuccess(lead, isDuplicate) {
   fragment.querySelector(".large-code").textContent = lead.vipCode;
   fragment.querySelector(".muted").textContent =
     "请截图保存。凭这个 VIP 码可在柜台领取小礼物，并向合作月子中心查询专属优惠。";
+  const successBox = fragment.querySelector(".success-box");
+  successBox.appendChild(renderPdfBenefit(lead));
 
   const result = document.querySelector("#leadResult");
   result.innerHTML = "";
   result.appendChild(fragment);
   result.appendChild(renderGiftRedeemPanel(lead));
   result.appendChild(renderAreaChooser(lead));
+}
+
+function renderPdfBenefit(lead) {
+  const panel = document.createElement("div");
+  panel.className = "benefit-panel";
+  panel.innerHTML = `
+    <strong>登记福利</strong>
+    <span>好孕天书 PDF 已解锁，可以下载保存慢慢阅读。</span>
+    <a class="download-action" href="assets/hao-yun-tian-shu.pdf" download="好孕天书.pdf">
+      下载好孕天书 PDF
+    </a>
+  `;
+
+  panel.querySelector(".download-action").addEventListener("click", () => {
+    track("pregnancy_ebook_downloaded", { vip_code: lead.vipCode, source: lead.source });
+  });
+
+  return panel;
 }
 
 function renderGiftRedeemPanel(lead) {
@@ -558,7 +600,7 @@ async function handleAdminLogin(event) {
 
 function handleAdminLogout() {
   sessionStorage.removeItem(ADMIN_PASSWORD_KEY);
-  adminState = { leads: [], conversions: [], partners: [] };
+  adminState = { leads: [], conversions: [], partners: [], scans: [], registrations: [] };
   showAdminLogin("已登出后台。");
 }
 
@@ -566,9 +608,13 @@ function renderAdminFromState(state) {
   const signed = state.conversions.filter((item) => item.stage === "signed");
   const revenue = signed.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const redeemed = state.leads.filter((lead) => lead.giftRedeemed).length;
+  const scans = (state.scans || []).length;
+  const registrationEvents = (state.registrations || []).length || state.leads.length;
 
   document.querySelector("#metrics").innerHTML = [
-    ["总登记", state.leads.length],
+    ["总扫码", scans],
+    ["登记提交", registrationEvents],
+    ["有效VIP", state.leads.length],
     ["已领取礼物", redeemed],
     ["已签单", signed.length],
     ["签单金额 RM", revenue.toLocaleString("en-MY")],
@@ -599,7 +645,12 @@ function renderLocations(state) {
   const baseUrl = `${location.origin}${location.pathname}`;
   document.querySelector("#locationList").innerHTML = locations
     .map((locationItem) => {
+      const scans = (state.scans || []).filter((scan) => scan.source === locationItem.code).length;
+      const registrations = (state.registrations || []).filter(
+        (item) => item.source === locationItem.code,
+      ).length;
       const count = state.leads.filter((lead) => lead.source === locationItem.code).length;
+      const registrationCount = registrations || count;
       const redeemed = state.leads.filter(
         (lead) => lead.source === locationItem.code && lead.giftRedeemed,
       ).length;
@@ -607,7 +658,7 @@ function renderLocations(state) {
       return `
         <div class="stack-item">
           <strong>${locationItem.label}</strong>
-          <small>${locationItem.type} · ${count} 登记 · ${redeemed} 已领取</small>
+          <small>${locationItem.type} · ${scans} 扫码 · ${registrationCount} 登记提交 · ${count} 有效VIP · ${redeemed} 已领取</small>
           <small>${link}</small>
         </div>
       `;
@@ -822,8 +873,14 @@ function exportMonthlyQrCsv() {
     return;
   }
   const rows = [
-    ["Month", "QR Location", "Source Code", "Type", "Registrations In Month", "Gift Redeemed In Month"],
+    ["Month", "QR Location", "Source Code", "Type", "Scans In Month", "Registration Submits In Month", "Valid VIPs In Month", "Gift Redeemed In Month"],
     ...locations.map((locationItem) => {
+      const monthlyScans = (adminState.scans || []).filter(
+        (scan) => scan.source === locationItem.code && itemMonth(scan.createdAt) === month,
+      );
+      const monthlyRegistrations = (adminState.registrations || []).filter(
+        (item) => item.source === locationItem.code && itemMonth(item.createdAt) === month,
+      );
       const monthlyLeads = adminState.leads.filter(
         (lead) => lead.source === locationItem.code && itemMonth(lead.createdAt) === month,
       );
@@ -835,6 +892,8 @@ function exportMonthlyQrCsv() {
         locationItem.label,
         locationItem.code,
         locationItem.type,
+        monthlyScans.length,
+        monthlyRegistrations.length || monthlyLeads.length,
         monthlyLeads.length,
         redeemed,
       ];
@@ -878,6 +937,7 @@ function bindEvents() {
 async function init() {
   await loadPartners();
   renderSource();
+  recordQrScan();
   setDueDateMin();
   bindEvents();
   showView();

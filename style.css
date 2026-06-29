@@ -515,6 +515,7 @@ textarea:focus {
   background: #fff4f7;
 }
 
+.benefit-panel,
 .gift-panel,
 .area-panel {
   display: grid;
@@ -526,10 +527,38 @@ textarea:focus {
   background: #fffafb;
 }
 
+.success-box .benefit-panel {
+  margin-top: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.download-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-hot));
+  color: #fff;
+  font-weight: 900;
+  text-decoration: none;
+  box-shadow: 0 12px 26px rgba(215, 25, 53, 0.18);
+}
+
+.download-action:hover {
+  transform: translateY(-1px);
+}
+
+.benefit-panel strong,
 .gift-panel strong {
   color: var(--brand-strong);
 }
 
+.benefit-panel span,
 .gift-panel span {
   color: var(--muted);
   line-height: 1.45;
@@ -563,7 +592,7 @@ textarea:focus {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 14px;
   margin-bottom: 18px;
 }

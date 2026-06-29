@@ -99,6 +99,74 @@ export function toPartner(row) {
   };
 }
 
+export function toScan(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    source: row.source,
+    path: row.path,
+    userAgent: row.user_agent,
+    createdAt: row.created_at,
+  };
+}
+
+export function toRegistrationEvent(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    source: row.source,
+    phone: row.phone,
+    duplicate: Boolean(row.duplicate),
+    vipCode: row.vip_code,
+    createdAt: row.created_at,
+  };
+}
+
+export async function ensureScansTable(DB) {
+  await DB.prepare(
+    `CREATE TABLE IF NOT EXISTS scans (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      path TEXT,
+      user_agent TEXT,
+      created_at TEXT NOT NULL
+    )`,
+  ).run();
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_scans_source ON scans (source)").run();
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans (created_at)").run();
+}
+
+export async function ensureRegistrationEventsTable(DB) {
+  await DB.prepare(
+    `CREATE TABLE IF NOT EXISTS registration_events (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      phone TEXT,
+      duplicate INTEGER DEFAULT 0,
+      vip_code TEXT,
+      created_at TEXT NOT NULL
+    )`,
+  ).run();
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_registration_events_source ON registration_events (source)").run();
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_registration_events_created_at ON registration_events (created_at)").run();
+}
+
+export async function recordRegistrationEvent(DB, { source, phone, duplicate, vipCode }) {
+  await ensureRegistrationEventsTable(DB);
+  await DB.prepare(
+    "INSERT INTO registration_events (id, source, phone, duplicate, vip_code, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  )
+    .bind(
+      crypto.randomUUID(),
+      String(source || "unknown"),
+      phone || "",
+      duplicate ? 1 : 0,
+      vipCode || "",
+      new Date().toISOString(),
+    )
+    .run();
+}
+
 export async function getNextVipCounter(DB) {
   await DB.prepare("INSERT OR IGNORE INTO counters (name, value) VALUES ('vip', 1)").run();
   const row = await DB.prepare("UPDATE counters SET value = value + 1 WHERE name = 'vip' RETURNING value").first();

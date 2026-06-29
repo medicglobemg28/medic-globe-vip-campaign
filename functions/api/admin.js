@@ -1,18 +1,34 @@
-import { json, requireAdmin, toConversion, toLead, toPartner } from "../_lib.js";
+import {
+  ensureRegistrationEventsTable,
+  ensureScansTable,
+  json,
+  requireAdmin,
+  toConversion,
+  toLead,
+  toPartner,
+  toRegistrationEvent,
+  toScan,
+} from "../_lib.js";
 
 export async function onRequestGet({ request, env }) {
   const unauthorized = requireAdmin(request, env);
   if (unauthorized) return unauthorized;
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
 
+  await ensureScansTable(env.DB);
+  await ensureRegistrationEventsTable(env.DB);
   const leads = await env.DB.prepare("SELECT * FROM leads ORDER BY created_at DESC").all();
   const conversions = await env.DB.prepare("SELECT * FROM conversions ORDER BY created_at DESC").all();
   const partners = await env.DB.prepare("SELECT * FROM partners ORDER BY area, name").all();
+  const scans = await env.DB.prepare("SELECT * FROM scans ORDER BY created_at DESC").all();
+  const registrations = await env.DB.prepare("SELECT * FROM registration_events ORDER BY created_at DESC").all();
 
   return json({
     leads: leads.results.map(toLead),
     conversions: conversions.results.map(toConversion),
     partners: partners.results.map(toPartner),
+    scans: scans.results.map(toScan),
+    registrations: registrations.results.map(toRegistrationEvent),
   });
 }
 

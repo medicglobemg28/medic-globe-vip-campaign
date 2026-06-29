@@ -30,6 +30,23 @@ CREATE TABLE IF NOT EXISTS counters (
   value INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS scans (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  path TEXT,
+  user_agent TEXT,
+  created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS registration_events (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  phone TEXT,
+  duplicate INTEGER DEFAULT 0,
+  vip_code TEXT,
+  created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS partners (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -50,5 +67,9 @@ INSERT OR IGNORE INTO partners (id, name, area, link, link_label, clicks, create
 
 CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads (phone);
 CREATE INDEX IF NOT EXISTS idx_leads_source ON leads (source);
+CREATE INDEX IF NOT EXISTS idx_scans_source ON scans (source);
+CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans (created_at);
+CREATE INDEX IF NOT EXISTS idx_registration_events_source ON registration_events (source);
+CREATE INDEX IF NOT EXISTS idx_registration_events_created_at ON registration_events (created_at);
 CREATE INDEX IF NOT EXISTS idx_conversions_vip_code ON conversions (vip_code);
 CREATE INDEX IF NOT EXISTS idx_partners_area ON partners (area);

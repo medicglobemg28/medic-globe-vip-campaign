@@ -1,4 +1,12 @@
-import { generateVipCode, getNextVipCounter, json, normalizePhone, readJson, toLead } from "../_lib.js";
+import {
+  generateVipCode,
+  getNextVipCounter,
+  json,
+  normalizePhone,
+  readJson,
+  recordRegistrationEvent,
+  toLead,
+} from "../_lib.js";
 
 export async function onRequestPost({ request, env }) {
   if (!env.DB) return json({ message: "D1 binding DB is missing." }, 500);
@@ -12,16 +20,22 @@ export async function onRequestPost({ request, env }) {
     return json({ message: "预产期不能早过今天。" }, 400);
   }
 
+  const source = body.source || "unknown";
   const existing = await env.DB.prepare("SELECT * FROM leads WHERE phone = ? LIMIT 1").bind(phone).first();
   if (existing) {
     const lead = toLead(existing);
+    await recordRegistrationEvent(env.DB, {
+      source,
+      phone,
+      duplicate: true,
+      vipCode: lead.vipCode,
+    });
     return json({
       duplicate: true,
       lead,
     });
   }
 
-  const source = body.source || "unknown";
   const counterValue = await getNextVipCounter(env.DB);
   const vipCode = generateVipCode(source, counterValue);
   const id = crypto.randomUUID();
@@ -61,6 +75,13 @@ export async function onRequestPost({ request, env }) {
       createdAt,
     )
     .run();
+
+  await recordRegistrationEvent(env.DB, {
+    source,
+    phone,
+    duplicate: false,
+    vipCode,
+  });
 
   return json({ duplicate: false, lead });
 }
