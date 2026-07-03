@@ -16,7 +16,8 @@ export async function onRequestPost({ request, env }) {
   if (!body.name || !phone) {
     return json({ message: "Name and WhatsApp are required." }, 400);
   }
-  if (!body.dueDate || body.dueDate < new Date().toISOString().slice(0, 10)) {
+  const notPregnant = Boolean(body.notPregnant);
+  if (!notPregnant && (!body.dueDate || body.dueDate < new Date().toISOString().slice(0, 10))) {
     return json({ message: "预产期不能早过今天。" }, 400);
   }
 
@@ -47,7 +48,7 @@ export async function onRequestPost({ request, env }) {
     name: body.name,
     phone,
     area: body.area || "",
-    dueDate: body.dueDate || "",
+    dueDate: notPregnant ? "未怀孕" : body.dueDate || "",
     interest: body.interest || "",
     source,
     giftRedeemed: false,

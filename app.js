@@ -10,8 +10,8 @@ const locations = [
   { code: "yc_tcm_klang", label: "YC TCM Klang", type: "中医馆" },
   { code: "yc_tcm_kota_kemuning", label: "YC TCM Kota Kemuning", type: "中医馆" },
   { code: "yc_tcm_balakong", label: "YC TCM Balakong", type: "中医馆" },
-  { code: "sws_medical", label: "SWS Medical Kepong", type: "中医馆" },
-  { code: "wing_sang", label: "SWS Medical BDC", type: "中医馆" },
+  { code: "yc_tcm_sws_medical", label: "YC TCM SWS Medical", type: "中医馆" },
+  { code: "yc_tcm_wing_sang", label: "YC TCM Wing Sang", type: "中医馆" },
   { code: "sws28_fair", label: "SWS28 Fair", type: "展会" },
 ];
 
@@ -248,6 +248,21 @@ function setDueDateMin() {
   dueDate.min = todayDateValue();
 }
 
+function setupPregnancyStatusToggle() {
+  const dueDate = document.querySelector('input[name="dueDate"]');
+  const notPregnant = document.querySelector('input[name="notPregnant"]');
+  if (!dueDate || !notPregnant) return;
+
+  const sync = () => {
+    dueDate.required = !notPregnant.checked;
+    dueDate.disabled = notPregnant.checked;
+    if (notPregnant.checked) dueDate.value = "";
+  };
+
+  notPregnant.addEventListener("change", sync);
+  sync();
+}
+
 function showView() {
   internalMode = internalMode || new URLSearchParams(window.location.search).get("mode") === "admin";
   document.body.classList.toggle("internal-mode", internalMode);
@@ -281,7 +296,8 @@ async function handleLeadSubmit(event) {
         name: data.name.trim(),
         phone: normalizePhone(data.phone),
         area: "",
-        dueDate: data.dueDate,
+        dueDate: data.notPregnant ? "" : data.dueDate,
+        notPregnant: Boolean(data.notPregnant),
         interest: "月子中心名单",
         source,
         sourceLabel: locationLabel(source),
@@ -786,7 +802,7 @@ function renderLeadTable(state) {
         return `
           <tr>
             <td><strong>${lead.vipCode}</strong><br><small>${formatDate(lead.createdAt)}</small></td>
-            <td>${lead.name}<br><small>${lead.area} · ${lead.dueDate}</small></td>
+            <td>${lead.name}<br><small>${lead.area} · ${lead.dueDate || "未填写预产期"}</small></td>
             <td>${lead.phone}</td>
             <td>${locationLabel(lead.source)}</td>
             <td><span class="badge ${giftClass}">${lead.giftRedeemed ? "已领取" : "未领取"}</span></td>
@@ -939,6 +955,7 @@ async function init() {
   renderSource();
   recordQrScan();
   setDueDateMin();
+  setupPregnancyStatusToggle();
   bindEvents();
   showView();
 }
