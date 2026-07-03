@@ -338,32 +338,12 @@ function renderLeadSuccess(lead, isDuplicate) {
   fragment.querySelector(".large-code").textContent = lead.vipCode;
   fragment.querySelector(".muted").textContent =
     "请截图保存。凭这个 VIP 码可在柜台领取小礼物，并向合作月子中心查询专属优惠。";
-  const successBox = fragment.querySelector(".success-box");
-  successBox.appendChild(renderPdfBenefit(lead));
 
   const result = document.querySelector("#leadResult");
   result.innerHTML = "";
   result.appendChild(fragment);
   result.appendChild(renderGiftRedeemPanel(lead));
   result.appendChild(renderAreaChooser(lead));
-}
-
-function renderPdfBenefit(lead) {
-  const panel = document.createElement("div");
-  panel.className = "benefit-panel";
-  panel.innerHTML = `
-    <strong>登记福利</strong>
-    <span>好孕天书 PDF 已解锁，可以下载保存慢慢阅读。</span>
-    <a class="download-action" href="assets/hao-yun-tian-shu.pdf" download="好孕天书.pdf">
-      下载好孕天书 PDF
-    </a>
-  `;
-
-  panel.querySelector(".download-action").addEventListener("click", () => {
-    track("pregnancy_ebook_downloaded", { vip_code: lead.vipCode, source: lead.source });
-  });
-
-  return panel;
 }
 
 function renderGiftRedeemPanel(lead) {
