@@ -1,5 +1,6 @@
 const GA_ID = "G-KY2HEC6B46";
 const ADMIN_PASSWORD_KEY = "sws28_admin_password";
+const SAVED_LEAD_KEY = "sws28_saved_vip_lead";
 
 const locations = [
   { code: "yc_tcm_puchong", label: "YC TCM Puchong", type: "中医馆" },
@@ -122,6 +123,31 @@ function formatDate(iso) {
 
 function getLatestConversion(vipCode, state) {
   return [...state.conversions].reverse().find((item) => item.vipCode === vipCode);
+}
+
+function saveLeadForThisDevice(lead, isDuplicate) {
+  try {
+    localStorage.setItem(
+      SAVED_LEAD_KEY,
+      JSON.stringify({
+        lead,
+        isDuplicate,
+        savedAt: new Date().toISOString(),
+      }),
+    );
+  } catch {
+    // The VIP is still shown even if the browser blocks local storage.
+  }
+}
+
+function getSavedLeadForThisDevice() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(SAVED_LEAD_KEY) || "null");
+    if (!saved?.lead?.vipCode) return null;
+    return saved;
+  } catch {
+    return null;
+  }
 }
 
 function stageLabel(stage) {
@@ -282,6 +308,20 @@ function showView() {
   track("campaign_view", { app_section: active, source: sourceFromUrl() });
 }
 
+function restoreSavedLeadIfNeeded() {
+  if (new URLSearchParams(window.location.search).get("mode") === "admin") return;
+  const active = (window.location.hash || "#register").replace("#", "");
+  if (active && active !== "register") return;
+
+  const saved = getSavedLeadForThisDevice();
+  if (!saved) return;
+  renderLeadSuccess(saved.lead, Boolean(saved.isDuplicate));
+  track("saved_lead_restored", {
+    vip_code: saved.lead.vipCode,
+    source: saved.lead.source,
+  });
+}
+
 async function handleLeadSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -307,6 +347,7 @@ async function handleLeadSubmit(event) {
     });
 
     renderLeadSuccess(payload.lead, Boolean(payload.duplicate));
+    saveLeadForThisDevice(payload.lead, Boolean(payload.duplicate));
     if (!payload.duplicate) form.reset();
 
     track(payload.duplicate ? "lead_duplicate_found" : "lead_submitted", {
@@ -938,6 +979,7 @@ async function init() {
   setupPregnancyStatusToggle();
   bindEvents();
   showView();
+  restoreSavedLeadIfNeeded();
 }
 
 init();
