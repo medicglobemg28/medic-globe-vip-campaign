@@ -167,10 +167,61 @@ export async function recordRegistrationEvent(DB, { source, phone, duplicate, vi
     .run();
 }
 
+async function addColumnIfMissing(DB, table, definition) {
+  try {
+    await DB.prepare(`ALTER TABLE ${table} ADD COLUMN ${definition}`).run();
+  } catch (error) {
+    if (!String(error?.message || "").toLowerCase().includes("duplicate column")) {
+      throw error;
+    }
+  }
+}
+
+export async function ensureLeadStorage(DB) {
+  await DB.prepare(
+    `CREATE TABLE IF NOT EXISTS leads (
+      id TEXT PRIMARY KEY,
+      vip_code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      phone TEXT UNIQUE NOT NULL,
+      area TEXT,
+      due_date TEXT,
+      interest TEXT,
+      source TEXT,
+      gift_redeemed INTEGER DEFAULT 0,
+      redeemed_at TEXT,
+      whatsapp_status TEXT,
+      whatsapp_message TEXT,
+      whatsapp_at TEXT,
+      created_at TEXT NOT NULL
+    )`,
+  ).run();
+
+  await addColumnIfMissing(DB, "leads", "area TEXT");
+  await addColumnIfMissing(DB, "leads", "due_date TEXT");
+  await addColumnIfMissing(DB, "leads", "interest TEXT");
+  await addColumnIfMissing(DB, "leads", "source TEXT");
+  await addColumnIfMissing(DB, "leads", "gift_redeemed INTEGER DEFAULT 0");
+  await addColumnIfMissing(DB, "leads", "redeemed_at TEXT");
+  await addColumnIfMissing(DB, "leads", "whatsapp_status TEXT");
+  await addColumnIfMissing(DB, "leads", "whatsapp_message TEXT");
+  await addColumnIfMissing(DB, "leads", "whatsapp_at TEXT");
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_leads_phone ON leads (phone)").run();
+  await DB.prepare("CREATE INDEX IF NOT EXISTS idx_leads_source ON leads (source)").run();
+}
+
 export async function getNextVipCounter(DB) {
+  await DB.prepare(
+    `CREATE TABLE IF NOT EXISTS counters (
+      name TEXT PRIMARY KEY,
+      value INTEGER NOT NULL
+    )`,
+  ).run();
   await DB.prepare("INSERT OR IGNORE INTO counters (name, value) VALUES ('vip', 1)").run();
-  const row = await DB.prepare("UPDATE counters SET value = value + 1 WHERE name = 'vip' RETURNING value").first();
-  return Number(row.value) - 1;
+  const row = await DB.prepare("SELECT value FROM counters WHERE name = 'vip' LIMIT 1").first();
+  const current = Number(row?.value || 1);
+  await DB.prepare("UPDATE counters SET value = ? WHERE name = 'vip'").bind(current + 1).run();
+  return current;
 }
 
 export async function sendWhatsApp(env, body) {
