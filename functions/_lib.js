@@ -218,10 +218,16 @@ export async function getNextVipCounter(DB) {
     )`,
   ).run();
   await DB.prepare("INSERT OR IGNORE INTO counters (name, value) VALUES ('vip', 1)").run();
-  const row = await DB.prepare("SELECT value FROM counters WHERE name = 'vip' LIMIT 1").first();
-  const current = Number(row?.value || 1);
-  await DB.prepare("UPDATE counters SET value = ? WHERE name = 'vip'").bind(current + 1).run();
-  return current;
+  const [counterRow, leadRow] = await Promise.all([
+    DB.prepare("SELECT value FROM counters WHERE name = 'vip' LIMIT 1").first(),
+    DB.prepare("SELECT MAX(CAST(substr(vip_code, -4) AS INTEGER)) AS max_value FROM leads WHERE vip_code LIKE 'VIP-%'")
+      .first(),
+  ]);
+  const counterValue = Number(counterRow?.value || 1);
+  const nextAfterExistingLeads = Number(leadRow?.max_value || 0) + 1;
+  const nextValue = Math.max(counterValue, nextAfterExistingLeads);
+  await DB.prepare("UPDATE counters SET value = ? WHERE name = 'vip'").bind(nextValue + 1).run();
+  return nextValue;
 }
 
 export async function sendWhatsApp(env, body) {
