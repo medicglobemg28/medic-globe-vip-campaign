@@ -83,7 +83,13 @@ async function apiRequest(path, options = {}) {
     headers,
     ...options,
   });
-  const payload = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let payload = {};
+  try {
+    payload = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    payload = { message: responseText };
+  }
   if (!response.ok) {
     throw new Error(payload.message || "Request failed");
   }
@@ -399,7 +405,7 @@ function renderGiftRedeemPanel(lead) {
     : `
       <strong>柜台领取确认</strong>
       <span>到柜台领取小礼物时，请由工作人员点击确认。</span>
-      <button class="ghost-action" type="button" id="inlineRedeemButton">确认已经领取</button>
+      <button class="redeem-attention-action" type="button" id="inlineRedeemButton">确认已经领取</button>
       <span id="inlineRedeemResult"></span>
     `;
 
@@ -415,6 +421,8 @@ function renderGiftRedeemPanel(lead) {
         });
         result.textContent = `领取日期：${formatDate(payload.lead.redeemedAt)}`;
         button.textContent = "已领取";
+        button.classList.remove("redeem-attention-action");
+        button.classList.add("redeem-done-action");
         track("gift_redeemed_inline", { vip_code: lead.vipCode, source: lead.source });
       } catch (error) {
         result.textContent = error.message || "确认失败，请稍后再试。";
