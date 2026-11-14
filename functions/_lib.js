@@ -230,7 +230,7 @@ export async function getNextVipCounter(DB) {
   return nextValue;
 }
 
-export async function sendWhatsApp(env, body) {
+export async function sendWhatsApp(env, body, origin) {
   const phone = formatWhatsAppPhone(body.phone);
   if (!phone) {
     return { status: "failed", message: "Invalid WhatsApp phone number." };
@@ -248,7 +248,7 @@ export async function sendWhatsApp(env, body) {
     body.vipCode || "-",
     body.sourceLabel || body.source || "永生 SWS28 合作点",
     partnerList,
-    body.redeemLink || "https://vip.medicglobe.com.my/#redeem",
+    body.redeemLink || `${origin}/#redeem`,
     supportPhone,
   ];
 
