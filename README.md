@@ -16,10 +16,10 @@ It includes:
 
 ## Suggested live URLs
 
-- Public campaign page: `https://vip.medicglobe.com.my/?source=tcm_ampang#register`
-- Counter redeem page: `https://vip.medicglobe.com.my/?mode=admin#redeem`
-- Partner reporting page: `https://vip.medicglobe.com.my/?mode=admin#partner`
-- Admin dashboard: `https://vip.medicglobe.com.my/?mode=admin#admin`
+- Public campaign page: `https://vip.medicglobe-mg.com/?source=tcm_ampang#register`
+- Counter redeem page: `https://vip.medicglobe-mg.com/?mode=admin#redeem`
+- Partner reporting page: `https://vip.medicglobe-mg.com/?mode=admin#partner`
+- Admin dashboard: `https://vip.medicglobe-mg.com/?mode=admin#admin`
 
 Public visitors only see the registration page. Internal views are hidden unless the URL includes `?mode=admin`.
 
@@ -107,5 +107,5 @@ Run the latest `schema.sql` in D1 Console after deploying this version. It adds 
 Internal partner management:
 
 ```text
-https://vip.medicglobe.com.my/?mode=admin#admin
+https://vip.medicglobe-mg.com/?mode=admin#admin
 ```
